@@ -112,11 +112,7 @@
 
   .mini-label { font-family: var(--font-display); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin-top: 4px; }
 
-  /* スタッフ稼働状況：レーン表と別枠(見出し行で区切る)だが、同じ列グリッド・同じスクロールに乗せて時間帯を揃える */
-  .section-divider-row { display: flex; height: 22px; background: var(--surface-alt); }
-  .section-divider-cell { flex-shrink: 0; width: 66px; }
-  .lanename-cell.section-label { height: 22px; font-size: .58rem; background: var(--surface-alt); justify-content: flex-start; padding-left: 6px; }
-  .lane-row.staff-row { background: var(--surface); }
+  /* スタッフ稼働状況：レーン表とは別の独立した表(別のsched-grid)。列幅66px・36列は揃えてあるので時間軸は一致する */
   .slot.staff-avail { background: var(--available-soft); color: var(--available); }
   .slot.staff-absent { background: repeating-linear-gradient(135deg, var(--busy-soft), var(--busy-soft) 4px, var(--surface) 4px, var(--surface) 8px); color: var(--busy); font-weight: 700; }
   .staff-chip.unavailable { opacity: .55; }
@@ -236,7 +232,16 @@
               <div class="sched-inner" id="sched-inner"></div>
             </div>
           </div>
-          <div style="font-size:.62rem; color:var(--ink-soft);">← 左右にスワイプ、レーン・スタッフ稼働状況とも同時に動きます →</div>
+          <div style="font-size:.62rem; color:var(--ink-soft);">← 左右にスワイプ →</div>
+
+          <div class="mini-label">スタッフ稼働状況</div>
+          <div class="sched-grid">
+            <div class="sched-lanenames" id="staff-lanenames"></div>
+            <div class="sched-scroll" id="staff-scroll">
+              <div class="sched-inner" id="staff-inner"></div>
+            </div>
+          </div>
+          <div style="font-size:.62rem; color:var(--ink-soft);">← こちらも左右にスワイプ(上のレーン表と時間軸の列幅は揃っています) →</div>
 
           <div class="legend">
             <div class="item"><span class="swatch" style="background:var(--busy-soft); border:1px solid var(--busy);"></span>確定</div>
@@ -401,6 +406,7 @@
     document.getElementById('shell').hidden = false;
     document.getElementById('whoami-name').textContent = staffById(loggedInStaffId).name;
     renderSchedule();
+    renderStaffTable();
   });
 
   document.getElementById('btn-logout').addEventListener('click', function () {
@@ -426,7 +432,7 @@
       btn.classList.add('active');
       var target = btn.getAttribute('data-nav');
       showPage(target);
-      if (target === 'page-schedule') renderSchedule();
+      if (target === 'page-schedule') { renderSchedule(); renderStaffTable(); }
       if (target === 'page-joblist') renderJobList();
     });
   });
@@ -446,17 +452,12 @@
   }
 
   function renderSchedule() {
-    // 左固定のレーン名列(レーン一覧の後ろに、区切り行＋スタッフ稼働状況を続ける。
-    // 別枠として見出しは分けるが、列グリッドと横スクロールはレーンと完全に共有するので時間帯が必ず揃う)
+    // 左固定のレーン名列
     var lanenamesWrap = document.getElementById('sched-lanenames');
     var lanenameHtml = '<div class="lanename-cell ruler-spacer">時刻</div>';
     ALL_LANES.forEach(function (l) {
       var isFirstLarge = l.laneType === 'large' && l.lane === 1;
       lanenameHtml += '<div class="lanename-cell' + (l.laneType === 'large' ? ' group-large' : '') + (isFirstLarge ? ' group-gap' : '') + '">' + l.label + '</div>';
-    });
-    lanenameHtml += '<div class="lanename-cell section-label">スタッフ</div>';
-    STAFF.forEach(function (s) {
-      lanenameHtml += '<div class="lanename-cell">' + s.name + '</div>';
     });
     lanenamesWrap.innerHTML = lanenameHtml;
 
@@ -503,28 +504,7 @@
       lanesHtml += '</div>';
     });
 
-    // 区切り行(見出し)＋スタッフごとの稼働状況行。レーンと同じ36列(15分刻み)グリッドを使うので時間帯が完全に揃う
-    var dividerHtml = '<div class="section-divider-row">';
-    for (var d = 0; d < TIME_LABELS.length; d++) dividerHtml += '<div class="section-divider-cell"></div>';
-    dividerHtml += '</div>';
-
-    var staffRowsHtml = '';
-    STAFF.forEach(function (s) {
-      staffRowsHtml += '<div class="lane-row staff-row">';
-      for (var i = 0; i < TIME_LABELS.length; i++) {
-        var slotStartMin = DAY_START_MIN + i * STEP_MIN;
-        var slotEndMin = slotStartMin + STEP_MIN;
-        var absence = absencesFor(s.id).filter(function (a) { return slotStartMin < a.endMin && slotEndMin > a.startMin; })[0];
-        if (absence) {
-          staffRowsHtml += '<div class="slot staff-absent">' + absence.reason + '</div>';
-        } else {
-          staffRowsHtml += '<div class="slot staff-avail"></div>';
-        }
-      }
-      staffRowsHtml += '</div>';
-    });
-
-    inner.innerHTML = rulerHtml + lanesHtml + dividerHtml + staffRowsHtml;
+    inner.innerHTML = rulerHtml + lanesHtml;
 
     inner.querySelectorAll('.slot-clickable').forEach(function (el) {
       el.addEventListener('click', function () { openResDetail(el.getAttribute('data-resid')); });
@@ -536,6 +516,42 @@
       '<div class="summary-tile pending"><div class="num">' + counts.pending + '</div><div class="lbl">仮予約</div></div>' +
       '<div class="summary-tile available"><div class="num">' + counts.available + '</div><div class="lbl">空き枠</div></div>' +
       '</div>';
+  }
+
+  // ---------------------------------------------------------------
+  // スタッフ稼働状況：レーン表とは別枠の独立した表。列幅(66px)・列数(36列15分刻み)は
+  // レーン表と揃えてあるので、時間軸の位置は一致する(ただしスクロールは連動しない別のテーブル)。
+  // ---------------------------------------------------------------
+  function renderStaffTable() {
+    var lanenamesWrap = document.getElementById('staff-lanenames');
+    var lanenameHtml = '<div class="lanename-cell ruler-spacer">時刻</div>';
+    STAFF.forEach(function (s) {
+      lanenameHtml += '<div class="lanename-cell">' + s.name + '</div>';
+    });
+    lanenamesWrap.innerHTML = lanenameHtml;
+
+    var inner = document.getElementById('staff-inner');
+    var rulerHtml = '<div class="ruler-row">';
+    TIME_LABELS.forEach(function (label) {
+      rulerHtml += '<div class="rcell">' + label + '</div>';
+    });
+    rulerHtml += '</div>';
+
+    var staffRowsHtml = '';
+    STAFF.forEach(function (s) {
+      staffRowsHtml += '<div class="lane-row">';
+      for (var i = 0; i < TIME_LABELS.length; i++) {
+        var slotStartMin = DAY_START_MIN + i * STEP_MIN;
+        var slotEndMin = slotStartMin + STEP_MIN;
+        var absence = absencesFor(s.id).filter(function (a) { return slotStartMin < a.endMin && slotEndMin > a.startMin; })[0];
+        staffRowsHtml += absence
+          ? '<div class="slot staff-absent">' + absence.reason + '</div>'
+          : '<div class="slot staff-avail"></div>';
+      }
+      staffRowsHtml += '</div>';
+    });
+
+    inner.innerHTML = rulerHtml + staffRowsHtml;
   }
 
   // ---------------------------------------------------------------
