@@ -12,6 +12,7 @@
     --ink: #26201A;
     --ink-soft: #6B6155;
     --line: rgba(38,32,26,0.14);
+    --line-strong: rgba(38,32,26,0.32);
     --amber: #C9631A;
     --amber-soft: #F7E3D0;
     --charcoal: #2B2B2B;
@@ -28,7 +29,7 @@
   @media (prefers-color-scheme: dark) {
     :root {
       --paper: #1A1611; --surface: #221D17; --surface-alt: #2B241C;
-      --ink: #F0E9DE; --ink-soft: #B0A493; --line: rgba(240,233,222,0.14);
+      --ink: #F0E9DE; --ink-soft: #B0A493; --line: rgba(240,233,222,0.14); --line-strong: rgba(240,233,222,0.32);
       --amber: #E68A3E; --amber-soft: #3A2716;
       --available: #59C889; --available-soft: #123B2A;
       --busy: #E68A3E; --busy-soft: #3A2716;
@@ -38,7 +39,7 @@
   }
   :root[data-theme="dark"] {
     --paper: #1A1611; --surface: #221D17; --surface-alt: #2B241C;
-    --ink: #F0E9DE; --ink-soft: #B0A493; --line: rgba(240,233,222,0.14);
+    --ink: #F0E9DE; --ink-soft: #B0A493; --line: rgba(240,233,222,0.14); --line-strong: rgba(240,233,222,0.32);
     --amber: #E68A3E; --amber-soft: #3A2716;
     --available: #59C889; --available-soft: #123B2A;
     --busy: #E68A3E; --busy-soft: #3A2716;
@@ -47,7 +48,7 @@
   }
   :root[data-theme="light"] {
     --paper: #F5F2EC; --surface: #FFFFFF; --surface-alt: #EFEAE0;
-    --ink: #26201A; --ink-soft: #6B6155; --line: rgba(38,32,26,0.14);
+    --ink: #26201A; --ink-soft: #6B6155; --line: rgba(38,32,26,0.14); --line-strong: rgba(38,32,26,0.32);
     --amber: #C9631A; --amber-soft: #F7E3D0;
     --available: #2E9B5C; --available-soft: #DEF0E4;
     --busy: #C9631A; --busy-soft: #F7E3D0;
@@ -101,18 +102,18 @@
   .segtab { flex: 1; border: none; background: transparent; color: var(--ink-soft); font-size: .74rem; font-weight: 700; padding: 7px 10px; border-radius: 999px; text-align: center; }
   .segtab.active { background: var(--amber); color: #2A1200; }
 
-  .lane-block { display: flex; flex-direction: column; gap: 6px; }
-  .lane-head { display:flex; align-items:center; justify-content:space-between; font-size:.72rem; }
+  .lane-block { display: flex; flex-direction: column; gap: 0; border-bottom: 1px solid var(--line-strong); padding-bottom: 6px; margin-bottom: 6px; }
+  .lane-head { display:flex; align-items:center; justify-content:space-between; font-size:.72rem; margin-bottom: 4px; }
   .lane-head .lane-name { font-weight: 700; }
   .lane-head .lane-note { color: var(--ink-soft); }
-  .lane-strip { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 2px; }
-  .slot { flex-shrink: 0; min-width: 64px; height: 46px; border-radius: 6px; background: var(--surface-alt); border: 1px solid var(--line); display:flex; flex-direction: column; align-items:center; justify-content:center; font-size: .6rem; color: var(--ink-soft); position: relative; padding: 2px 4px; text-align: center; }
-  .slot.busy { background: var(--busy-soft); border-color: var(--busy); color: var(--busy); font-weight: 700; }
-  .slot.pending { background: var(--pending-soft); border: 1px dashed var(--pending); color: var(--pending); font-weight: 700; }
+  .lane-strip { display: flex; gap: 0; overflow-x: auto; padding-bottom: 2px; }
+  .slot { flex-shrink: 0; width: 64px; height: 46px; background: var(--surface-alt); border-right: 1px solid var(--line); display:flex; flex-direction: column; align-items:center; justify-content:center; font-size: .6rem; color: var(--ink-soft); position: relative; padding: 2px 4px; text-align: center; }
+  .slot.busy { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
+  .slot.pending { background: var(--pending-soft); border-left: 1px dashed var(--pending); color: var(--pending); font-weight: 700; }
   .slot .who { font-size: .58rem; line-height: 1.15; }
   .slot .staff-dot { font-size: .5rem; font-weight: 700; opacity: .85; margin-top: 1px; }
-  .time-ruler { display:flex; gap:3px; }
-  .time-ruler span { flex-shrink:0; min-width: 34px; font-size: .56rem; color: var(--ink-soft); text-align:center; }
+  .time-ruler { display:flex; gap:0; }
+  .time-ruler span { flex-shrink:0; width: 64px; font-size: .56rem; color: var(--ink-soft); text-align:left; padding-left: 3px; font-variant-numeric: tabular-nums; }
 
   .legend { display:flex; gap:12px; font-size: .68rem; color: var(--ink-soft); flex-wrap: wrap; margin-top: 4px; }
   .legend .item { display:flex; align-items:center; gap:5px; }
@@ -191,7 +192,7 @@
         <div class="date-nav"><button>◀</button><span>2026年8月12日(水)</span><button>▶</button></div>
 
         <div class="time-ruler" style="padding-left:56px;">
-          <span>9:00</span><span>9:30</span><span>10:00</span><span>10:30</span><span>11:00</span><span>11:30</span>
+          <span>9:00</span><span>9:15</span><span>9:30</span><span>9:45</span><span>10:00</span><span>10:15</span>
         </div>
 
         <div class="lane-block">
@@ -233,7 +234,7 @@
         </div>
       </div>
     </div>
-    <div class="caption">02 今日の予約状況(核となる画面・2026-07-28改訂)。<b>普通車/大型車のタブ分けは廃止し、全レーンを1つの横スクロール領域にまとめた</b>——どのレーンをスワイプしても全レーン同時に動く。時間軸は全レーン15分刻みに統一。お客様・担当スタッフとも<b>フルネーム表示</b>(頭文字への省略はしない)。動作する版は<a href="./proto.html" style="color:var(--amber);">proto.html</a>を参照。</div>
+    <div class="caption">02 今日の予約状況(核となる画面・2026-07-28改訂)。<b>普通車/大型車のタブ分けは廃止し、全レーンを1つの横スクロール領域にまとめた</b>——どのレーンをスワイプしても全レーン同時に動く。時間軸は全レーン<b>15分刻みで全ラベル表示・セル左揃え</b>に統一。お客様・担当スタッフとも<b>フルネーム表示</b>(頭文字への省略はしない)。<b>レーンごとに区切り線</b>を入れて見分けやすくした。動作する版は<a href="./proto.html" style="color:var(--amber);">proto.html</a>を参照。</div>
   </div>
 
   <div class="screen-block">
