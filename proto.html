@@ -110,10 +110,13 @@
 
   .mini-label { font-family: var(--font-display); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin-top: 4px; }
 
-  .staff-status-row { display:flex; align-items:center; gap:8px; margin-bottom: 5px; }
-  .staff-status-row .sname { width: 34px; font-size:.72rem; font-weight:700; flex-shrink:0; }
-  .staff-bar { position:relative; flex:1; height: 24px; border-radius:6px; background: var(--available-soft); overflow:hidden; border: 1px solid var(--line); }
-  .staff-bar .absence { position:absolute; top:0; bottom:0; background: var(--busy-soft); border-left:1px solid var(--busy); border-right:1px solid var(--busy); display:flex; align-items:center; justify-content:center; font-size:.6rem; color:var(--busy); font-weight:700; white-space:nowrap; overflow:hidden; padding: 0 2px; }
+  /* スタッフ稼働状況：レーン表と別枠(見出し行で区切る)だが、同じ列グリッド・同じスクロールに乗せて時間帯を揃える */
+  .section-divider-row { display: flex; height: 22px; background: var(--surface-alt); }
+  .section-divider-cell { flex-shrink: 0; width: 66px; }
+  .lanename-cell.section-label { height: 22px; font-size: .58rem; background: var(--surface-alt); justify-content: flex-start; padding-left: 6px; }
+  .lane-row.staff-row { background: var(--surface); }
+  .slot.staff-avail { background: var(--available-soft); color: var(--available); }
+  .slot.staff-absent { background: repeating-linear-gradient(135deg, var(--busy-soft), var(--busy-soft) 4px, var(--surface) 4px, var(--surface) 8px); color: var(--busy); font-weight: 700; }
   .staff-chip.unavailable { opacity: .55; }
   .staff-chip .warn { font-size: .62rem; color: var(--busy); font-weight: 700; margin-left: 2px; }
 
@@ -231,15 +234,13 @@
               <div class="sched-inner" id="sched-inner"></div>
             </div>
           </div>
-          <div style="font-size:.62rem; color:var(--ink-soft);">← 左右にスワイプ、全レーン同時に動きます →</div>
-
-          <div class="mini-label">スタッフ稼働状況</div>
-          <div id="staff-status-wrap"></div>
+          <div style="font-size:.62rem; color:var(--ink-soft);">← 左右にスワイプ、レーン・スタッフ稼働状況とも同時に動きます →</div>
 
           <div class="legend">
             <div class="item"><span class="swatch" style="background:var(--busy-soft); border:1px solid var(--busy);"></span>確定</div>
             <div class="item"><span class="swatch" style="background:var(--pending-soft); border:1px dashed var(--pending);"></span>仮予約</div>
             <div class="item"><span class="swatch" style="background:var(--surface-alt); border:1px solid var(--line);"></span>空き</div>
+            <div class="item"><span class="swatch" style="background:repeating-linear-gradient(135deg, var(--busy-soft), var(--busy-soft) 3px, var(--surface) 3px, var(--surface) 6px);"></span>スタッフ不在</div>
           </div>
         </section>
 
@@ -354,7 +355,7 @@
     { staff: 'suzuki', startMin: 13 * 60, endMin: 15 * 60, reason: '出張' },
     { staff: 'takahashi', startMin: 9 * 60, endMin: 10 * 60 + 30, reason: '外対応' }
   ];
-  var DAY_START_MIN = 9 * 60, DAY_END_MIN = 18 * 60, DAY_TOTAL_MIN = DAY_END_MIN - DAY_START_MIN;
+  var DAY_START_MIN = 9 * 60;
 
   function absencesFor(staffId) {
     return staffAbsences.filter(function (a) { return a.staff === staffId; });
@@ -443,11 +444,16 @@
   }
 
   function renderSchedule() {
-    // 左固定のレーン名列
+    // 左固定のレーン名列(レーン一覧の後ろに、区切り行＋スタッフ稼働状況を続ける。
+    // 別枠として見出しは分けるが、列グリッドと横スクロールはレーンと完全に共有するので時間帯が必ず揃う)
     var lanenamesWrap = document.getElementById('sched-lanenames');
     var lanenameHtml = '<div class="lanename-cell ruler-spacer">時刻</div>';
     ALL_LANES.forEach(function (l) {
       lanenameHtml += '<div class="lanename-cell' + (l.laneType === 'large' ? ' group-large' : '') + '">' + l.label + '</div>';
+    });
+    lanenameHtml += '<div class="lanename-cell section-label">スタッフ</div>';
+    STAFF.forEach(function (s) {
+      lanenameHtml += '<div class="lanename-cell">' + s.name + '</div>';
     });
     lanenamesWrap.innerHTML = lanenameHtml;
 
@@ -493,7 +499,28 @@
       lanesHtml += '</div>';
     });
 
-    inner.innerHTML = rulerHtml + lanesHtml;
+    // 区切り行(見出し)＋スタッフごとの稼働状況行。レーンと同じ36列(15分刻み)グリッドを使うので時間帯が完全に揃う
+    var dividerHtml = '<div class="section-divider-row">';
+    for (var d = 0; d < TIME_LABELS.length; d++) dividerHtml += '<div class="section-divider-cell"></div>';
+    dividerHtml += '</div>';
+
+    var staffRowsHtml = '';
+    STAFF.forEach(function (s) {
+      staffRowsHtml += '<div class="lane-row staff-row">';
+      for (var i = 0; i < TIME_LABELS.length; i++) {
+        var slotStartMin = DAY_START_MIN + i * STEP_MIN;
+        var slotEndMin = slotStartMin + STEP_MIN;
+        var absence = absencesFor(s.id).filter(function (a) { return slotStartMin < a.endMin && slotEndMin > a.startMin; })[0];
+        if (absence) {
+          staffRowsHtml += '<div class="slot staff-absent">' + absence.reason + '</div>';
+        } else {
+          staffRowsHtml += '<div class="slot staff-avail"></div>';
+        }
+      }
+      staffRowsHtml += '</div>';
+    });
+
+    inner.innerHTML = rulerHtml + lanesHtml + dividerHtml + staffRowsHtml;
 
     inner.querySelectorAll('.slot-clickable').forEach(function (el) {
       el.addEventListener('click', function () { openResDetail(el.getAttribute('data-resid')); });
@@ -505,28 +532,6 @@
       '<div class="summary-tile pending"><div class="num">' + counts.pending + '</div><div class="lbl">仮予約</div></div>' +
       '<div class="summary-tile available"><div class="num">' + counts.available + '</div><div class="lbl">空き枠</div></div>' +
       '</div>';
-
-    renderStaffStatus();
-  }
-
-  function renderStaffStatus() {
-    var wrap = document.getElementById('staff-status-wrap');
-    var html = '';
-    STAFF.forEach(function (s) {
-      html += '<div class="staff-status-row"><span class="sname">' + s.name + '</span><div class="staff-bar">';
-      absencesFor(s.id).forEach(function (a) {
-        var leftPct = (a.startMin - DAY_START_MIN) / DAY_TOTAL_MIN * 100;
-        var widthPct = (a.endMin - a.startMin) / DAY_TOTAL_MIN * 100;
-        html += '<div class="absence" style="left:' + leftPct + '%; width:' + widthPct + '%;" title="' + a.reason + ' ' + minToLabel(a.startMin) + '〜' + minToLabel(a.endMin) + '">' + a.reason + '</div>';
-      });
-      html += '</div></div>';
-    });
-    wrap.innerHTML = html;
-  }
-
-  function minToLabel(m) {
-    var h = Math.floor(m / 60), mm = m % 60;
-    return h + ':' + (mm === 0 ? '00' : mm);
   }
 
   // ---------------------------------------------------------------
