@@ -117,7 +117,7 @@
   .slot.staff-avail { background: var(--surface); }
   .slot.staff-absent { background: repeating-linear-gradient(135deg, var(--busy-soft), var(--busy-soft) 4px, var(--surface) 4px, var(--surface) 8px); color: var(--busy); font-weight: 700; }
   .slot.staff-busy-normal { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
-  .slot.staff-busy-large { background: var(--pending-soft); color: var(--pending); font-weight: 700; }
+  .slot.staff-busy-large { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
   .staff-chip.unavailable { opacity: .55; }
   .staff-chip .warn { font-size: .62rem; color: var(--busy); font-weight: 700; margin-left: 2px; }
 
@@ -250,10 +250,8 @@
           <div class="legend">
             <div class="item"><span class="swatch" style="background:var(--busy-soft); border:1px solid var(--busy);"></span>確定</div>
             <div class="item"><span class="swatch" style="background:var(--pending-soft); border:1px dashed var(--pending);"></span>仮予約</div>
-            <div class="item"><span class="swatch" style="background:var(--surface); border:1px solid var(--line);"></span>空き(レーン)・在席(スタッフ)</div>
+            <div class="item"><span class="swatch" style="background:var(--surface); border:1px solid var(--line);"></span>空き</div>
             <div class="item"><span class="swatch" style="background:repeating-linear-gradient(135deg, var(--busy-soft), var(--busy-soft) 3px, var(--surface) 3px, var(--surface) 6px);"></span>スタッフ不在</div>
-            <div class="item"><span class="swatch" style="background:var(--busy-soft); border:1px solid var(--busy);"></span>普通車対応中</div>
-            <div class="item"><span class="swatch" style="background:var(--pending-soft); border:1px solid var(--pending);"></span>大型車対応中</div>
           </div>
         </section>
 
