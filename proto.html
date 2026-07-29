@@ -78,8 +78,6 @@
   .sched-lanenames { flex-shrink: 0; width: 56px; display: flex; flex-direction: column; background: var(--surface-alt); border-right: 1px solid var(--line); }
   .lanename-cell { height: 48px; display: flex; align-items: center; justify-content: center; font-size: .6rem; font-weight: 700; text-align: center; padding: 2px; border-bottom: 1px solid var(--line-strong); line-height: 1.15; }
   .lanename-cell.ruler-spacer { height: 20px; font-weight: 400; color: var(--ink-soft); }
-  .lanename-cell.group-large { background: var(--paper); }
-  .lanename-cell.group-gap { margin-top: 6px; }
 
   /* flex:1の子要素は、中身(2000px超の横長グリッド)より縮まないのがデフォルト仕様(min-width:autoの罠)。
      min-width:0を明示しないと、狭い画面(iPhone13 mini幅375px等)でoverflow-x:autoが効かず、
@@ -89,14 +87,11 @@
   .ruler-row { display: flex; height: 20px; }
   .ruler-row .rcell { flex-shrink: 0; width: 66px; font-size: .56rem; color: var(--ink-soft); text-align: left; display: flex; align-items: center; justify-content: flex-start; padding-left: 3px; font-variant-numeric: tabular-nums; }
   .lane-row { display: flex; height: 48px; }
-  .lane-row.group-large { background: var(--paper); }
-  .lane-row.group-gap { margin-top: 6px; }
 
   /* 横線は行(.lane-row)ではなくセル(.slot)自身に持たせる。
      .lane-rowとその子.slotが両方height:48px固定だと、行側にborder-bottomを足した分
      (border-box内で content=47pxになる)と子の48px指定が競合し、線が子要素に隠れて見えなくなるため。 */
   .slot { flex-shrink: 0; width: 66px; height: 48px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line-strong); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .56rem; color: var(--ink-soft); position: relative; cursor: default; padding: 1px 3px; text-align: center; overflow: hidden; }
-  .lane-row.group-large .slot { background: var(--paper); }
   .slot.slot-clickable { cursor: pointer; }
   .slot.busy { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
   .slot.pending { background: var(--pending-soft); border-left: 1px dashed var(--pending); color: var(--pending); font-weight: 700; }
@@ -226,13 +221,21 @@
 
           <button class="btn btn-ghost btn-sm" id="btn-toggle-mine" style="align-self:flex-start;">☐ 自分の担当のみ表示</button>
 
+          <div class="mini-label">普通車</div>
           <div class="sched-grid">
-            <div class="sched-lanenames" id="sched-lanenames"></div>
-            <div class="sched-scroll" id="sched-scroll">
-              <div class="sched-inner" id="sched-inner"></div>
+            <div class="sched-lanenames" id="normal-lanenames"></div>
+            <div class="sched-scroll" id="normal-scroll">
+              <div class="sched-inner" id="normal-inner"></div>
             </div>
           </div>
-          <div style="font-size:.62rem; color:var(--ink-soft);">← 左右にスワイプ →</div>
+
+          <div class="mini-label">大型車</div>
+          <div class="sched-grid">
+            <div class="sched-lanenames" id="large-lanenames"></div>
+            <div class="sched-scroll" id="large-scroll">
+              <div class="sched-inner" id="large-inner"></div>
+            </div>
+          </div>
 
           <div class="mini-label">スタッフ稼働状況</div>
           <div class="sched-grid">
@@ -241,7 +244,7 @@
               <div class="sched-inner" id="staff-inner"></div>
             </div>
           </div>
-          <div style="font-size:.62rem; color:var(--ink-soft);">← こちらも左右にスワイプ(上のレーン表と時間軸の列幅は揃っています) →</div>
+          <div style="font-size:.62rem; color:var(--ink-soft);">← 3つの表とも左右にスワイプで連動して動きます →</div>
 
           <div class="legend">
             <div class="item"><span class="swatch" style="background:var(--busy-soft); border:1px solid var(--busy);"></span>確定</div>
@@ -441,7 +444,9 @@
   document.getElementById('btn-next-day').addEventListener('click', function () { showToast('デモ版では日付は8/12固定です'); });
 
   // ---------------------------------------------------------------
-  // 今日の予約状況(全レーンを1つの横スクロール領域にまとめる。普通車/大型車のタブ切替は廃止)
+  // 今日の予約状況：普通車・大型車・スタッフ稼働状況を、それぞれ独立した表として描画する。
+  // 列幅(66px)・列数(36列＝15分刻み)は3表とも共通なので時間軸の位置は揃う。
+  // スクロールの連動は別立てのsetupScrollSync()で行う(3つとも独立したDOMの横スクロール領域のため)。
   // ---------------------------------------------------------------
   function reservationAt(laneType, lane, slotIndex) {
     for (var i = 0; i < reservations.length; i++) {
@@ -451,18 +456,15 @@
     return null;
   }
 
-  function renderSchedule() {
-    // 左固定のレーン名列
-    var lanenamesWrap = document.getElementById('sched-lanenames');
+  function renderLaneGroup(lanesArr, lanenamesId, innerId) {
+    var lanenamesWrap = document.getElementById(lanenamesId);
     var lanenameHtml = '<div class="lanename-cell ruler-spacer">時刻</div>';
-    ALL_LANES.forEach(function (l) {
-      var isFirstLarge = l.laneType === 'large' && l.lane === 1;
-      lanenameHtml += '<div class="lanename-cell' + (l.laneType === 'large' ? ' group-large' : '') + (isFirstLarge ? ' group-gap' : '') + '">' + l.label + '</div>';
+    lanesArr.forEach(function (l) {
+      lanenameHtml += '<div class="lanename-cell">' + l.label + '</div>';
     });
     lanenamesWrap.innerHTML = lanenameHtml;
 
-    // 右の横スクロール領域：ルーラー行＋全レーン行を縦に並べる(同じ1つのスクロールに入っているので必ず同調する)
-    var inner = document.getElementById('sched-inner');
+    var inner = document.getElementById(innerId);
     inner.classList.toggle('filter-mine', filterMine);
 
     var rulerHtml = '<div class="ruler-row">';
@@ -474,9 +476,8 @@
     var counts = { confirmed: 0, pending: 0, available: 0 };
     var countedResIds = {};
     var lanesHtml = '';
-    ALL_LANES.forEach(function (l) {
-      var isFirstLargeLane = l.laneType === 'large' && l.lane === 1;
-      lanesHtml += '<div class="lane-row' + (l.laneType === 'large' ? ' group-large' : '') + (isFirstLargeLane ? ' group-gap' : '') + '">';
+    lanesArr.forEach(function (l) {
+      lanesHtml += '<div class="lane-row">';
       for (var i = 0; i < TIME_LABELS.length; i++) {
         var r = reservationAt(l.laneType, l.lane, i);
         if (!r) {
@@ -509,6 +510,20 @@
     inner.querySelectorAll('.slot-clickable').forEach(function (el) {
       el.addEventListener('click', function () { openResDetail(el.getAttribute('data-resid')); });
     });
+
+    return counts;
+  }
+
+  function renderSchedule() {
+    var normalLanes = ALL_LANES.filter(function (l) { return l.laneType === 'normal'; });
+    var largeLanes = ALL_LANES.filter(function (l) { return l.laneType === 'large'; });
+    var c1 = renderLaneGroup(normalLanes, 'normal-lanenames', 'normal-inner');
+    var c2 = renderLaneGroup(largeLanes, 'large-lanenames', 'large-inner');
+    var counts = {
+      confirmed: c1.confirmed + c2.confirmed,
+      pending: c1.pending + c2.pending,
+      available: c1.available + c2.available
+    };
 
     document.getElementById('summary-wrap').innerHTML =
       '<div class="summary-bar">' +
@@ -717,6 +732,29 @@
     showPage('page-joblist');
     renderJobList();
   });
+
+  // ---------------------------------------------------------------
+  // 3つの表(普通車・大型車・スタッフ稼働状況)は別々のDOMだが、どれをスワイプしても
+  // 全部同じ横スクロール位置になるよう同期させる。scrollLeftを相互に反映するだけなので、
+  // 無限ループ防止に「今どれかが同期処理中」というフラグを立てる。
+  // ---------------------------------------------------------------
+  function setupScrollSync() {
+    var scrollEls = ['normal-scroll', 'large-scroll', 'staff-scroll'].map(function (id) {
+      return document.getElementById(id);
+    });
+    var syncing = false;
+    scrollEls.forEach(function (el) {
+      el.addEventListener('scroll', function () {
+        if (syncing) return;
+        syncing = true;
+        scrollEls.forEach(function (other) {
+          if (other !== el) other.scrollLeft = el.scrollLeft;
+        });
+        syncing = false;
+      });
+    });
+  }
+  setupScrollSync();
 
 })();
 </script>
