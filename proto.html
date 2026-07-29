@@ -486,7 +486,6 @@
     rulerHtml += '</div>';
 
     var counts = { confirmed: 0, pending: 0 };
-    var countedResIds = {};
     var lanesHtml = '';
     lanesArr.forEach(function (l) {
       lanesHtml += '<div class="lane-row">';
@@ -494,23 +493,22 @@
         var r = reservationAt(l.laneType, l.lane, i);
         if (!r) {
           lanesHtml += '<div class="slot"></div>';
+        } else if (i !== r.slotStart) {
+          // 継続コマ：この予約の最初のコマで結合済みの1セルとして既に描画済みなので、ここでは何も描画しない
         } else {
           var cls = r.status === 'cancelled' ? 'cancelled' : (r.status === 'pending' ? 'pending' : 'busy');
           var st = staffById(r.staff);
           var jobLinked = r.jobId ? ' job-linked' : '';
           var jobTag = r.kind === 'intake' ? '<span class="job-tag">入庫</span>' : r.kind === 'pickup' ? '<span class="job-tag">渡</span>' : '';
-          lanesHtml += '<div class="slot ' + cls + jobLinked + ' slot-clickable" data-resid="' + r.id + '">' +
+          var widthPx = r.slotCount * 66; // 複数コマにまたがる予約は、コマ数ぶんの幅を持つ1つのセルに結合する
+          lanesHtml += '<div class="slot ' + cls + jobLinked + ' slot-clickable" data-resid="' + r.id + '" style="width:' + widthPx + 'px;">' +
             '<span class="cust-name">' + r.customer + '</span>' +
             '<span class="svc-name">' + r.service + '(' + formatDuration(r.slotCount) + ')</span>' +
             '<span class="staff-name">' + (st ? st.name : '未定') + '</span>' +
             jobTag +
             '</div>';
-          // 予約は複数コマにまたがるので、件数は予約IDごとに1回だけ数える(コマ数と混同しないため)
-          if (!countedResIds[r.id]) {
-            countedResIds[r.id] = true;
-            if (r.status === 'confirmed') counts.confirmed++;
-            else if (r.status === 'pending') counts.pending++;
-          }
+          if (r.status === 'confirmed') counts.confirmed++;
+          else if (r.status === 'pending') counts.pending++;
         }
       }
       lanesHtml += '</div>';
@@ -569,15 +567,20 @@
         var slotEndMin = slotStartMin + STEP_MIN;
         var absence = absencesFor(s.id).filter(function (a) { return slotStartMin < a.endMin && slotEndMin > a.startMin; })[0];
         if (absence) {
-          staffRowsHtml += '<div class="slot staff-absent">' + absence.reason + '</div>';
+          var absStartIdx = Math.round((absence.startMin - DAY_START_MIN) / STEP_MIN);
+          if (i !== absStartIdx) continue; // 継続コマ：不在の最初のコマで結合済みなので描画しない
+          var absSlotCount = Math.round((absence.endMin - absence.startMin) / STEP_MIN);
+          staffRowsHtml += '<div class="slot staff-absent" style="width:' + (absSlotCount * 66) + 'px;">' + absence.reason + '</div>';
           continue;
         }
         // 不在でなければ、その時間に普通車/大型車どちらかを実際に対応しているかをレーンの予約から逆引きする
         var busyRes = staffReservationAt(s.id, i);
         if (busyRes) {
+          if (i !== busyRes.slotStart) continue; // 継続コマ：対応中の最初のコマで結合済みなので描画しない
           var vcls = busyRes.laneType === 'normal' ? 'staff-busy-normal' : 'staff-busy-large';
           var vlabel = (busyRes.laneType === 'normal' ? '普通車' : '大型車') + busyRes.lane;
-          staffRowsHtml += '<div class="slot ' + vcls + '"><span class="cust-name">' + vlabel + '</span><span class="staff-name">' + busyRes.service + '</span></div>';
+          var busyWidthPx = busyRes.slotCount * 66;
+          staffRowsHtml += '<div class="slot ' + vcls + '" style="width:' + busyWidthPx + 'px;"><span class="cust-name">' + vlabel + '</span><span class="staff-name">' + busyRes.service + '</span></div>';
         } else {
           staffRowsHtml += '<div class="slot staff-avail"></div>';
         }
