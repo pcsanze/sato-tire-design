@@ -84,7 +84,7 @@
      親のphone-frameのoverflow:hiddenで右側が切れて見える不具合になる。 */
   .sched-scroll { flex: 1; min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .sched-inner { display: flex; flex-direction: column; width: max-content; }
-  .ruler-row { display: flex; height: 20px; }
+  .ruler-row { display: flex; height: 20px; border-bottom: 1px solid var(--line-strong); }
   .ruler-row .rcell { flex-shrink: 0; width: 66px; font-size: .56rem; color: var(--ink-soft); text-align: left; display: flex; align-items: center; justify-content: flex-start; padding-left: 3px; font-variant-numeric: tabular-nums; }
   .lane-row { display: flex; height: 48px; }
 
@@ -110,6 +110,8 @@
   /* スタッフ稼働状況：レーン表とは別の独立した表(別のsched-grid)。列幅66px・36列は揃えてあるので時間軸は一致する */
   .slot.staff-avail { background: var(--available-soft); color: var(--available); }
   .slot.staff-absent { background: repeating-linear-gradient(135deg, var(--busy-soft), var(--busy-soft) 4px, var(--surface) 4px, var(--surface) 8px); color: var(--busy); font-weight: 700; }
+  .slot.staff-busy-normal { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
+  .slot.staff-busy-large { background: var(--pending-soft); color: var(--pending); font-weight: 700; }
   .staff-chip.unavailable { opacity: .55; }
   .staff-chip .warn { font-size: .62rem; color: var(--busy); font-weight: 700; margin-left: 2px; }
 
@@ -251,6 +253,8 @@
             <div class="item"><span class="swatch" style="background:var(--pending-soft); border:1px dashed var(--pending);"></span>仮予約</div>
             <div class="item"><span class="swatch" style="background:var(--surface-alt); border:1px solid var(--line);"></span>空き</div>
             <div class="item"><span class="swatch" style="background:repeating-linear-gradient(135deg, var(--busy-soft), var(--busy-soft) 3px, var(--surface) 3px, var(--surface) 6px);"></span>スタッフ不在</div>
+            <div class="item"><span class="swatch" style="background:var(--busy-soft); border:1px solid var(--busy);"></span>普通車対応中</div>
+            <div class="item"><span class="swatch" style="background:var(--pending-soft); border:1px solid var(--pending);"></span>大型車対応中</div>
           </div>
         </section>
 
@@ -456,6 +460,15 @@
     return null;
   }
 
+  // 特定のスタッフが、指定した列(時間帯)に普通車/大型車どちらかのレーン予約を実際に対応しているかを調べる
+  function staffReservationAt(staffId, slotIndex) {
+    for (var i = 0; i < reservations.length; i++) {
+      var r = reservations[i];
+      if (r.staff === staffId && r.status !== 'cancelled' && slotIndex >= r.slotStart && slotIndex < r.slotStart + r.slotCount) return r;
+    }
+    return null;
+  }
+
   function renderLaneGroup(lanesArr, lanenamesId, innerId) {
     var lanenamesWrap = document.getElementById(lanenamesId);
     var lanenameHtml = '<div class="lanename-cell ruler-spacer">時刻</div>';
@@ -473,7 +486,7 @@
     });
     rulerHtml += '</div>';
 
-    var counts = { confirmed: 0, pending: 0, available: 0 };
+    var counts = { confirmed: 0, pending: 0 };
     var countedResIds = {};
     var lanesHtml = '';
     lanesArr.forEach(function (l) {
@@ -482,7 +495,6 @@
         var r = reservationAt(l.laneType, l.lane, i);
         if (!r) {
           lanesHtml += '<div class="slot"></div>';
-          counts.available++;
         } else {
           var cls = r.status === 'cancelled' ? 'cancelled' : (r.status === 'pending' ? 'pending' : 'busy');
           var st = staffById(r.staff);
@@ -521,15 +533,13 @@
     var c2 = renderLaneGroup(largeLanes, 'large-lanenames', 'large-inner');
     var counts = {
       confirmed: c1.confirmed + c2.confirmed,
-      pending: c1.pending + c2.pending,
-      available: c1.available + c2.available
+      pending: c1.pending + c2.pending
     };
 
     document.getElementById('summary-wrap').innerHTML =
       '<div class="summary-bar">' +
       '<div class="summary-tile busy"><div class="num">' + counts.confirmed + '</div><div class="lbl">確定</div></div>' +
       '<div class="summary-tile pending"><div class="num">' + counts.pending + '</div><div class="lbl">仮予約</div></div>' +
-      '<div class="summary-tile available"><div class="num">' + counts.available + '</div><div class="lbl">空き枠</div></div>' +
       '</div>';
   }
 
@@ -559,9 +569,19 @@
         var slotStartMin = DAY_START_MIN + i * STEP_MIN;
         var slotEndMin = slotStartMin + STEP_MIN;
         var absence = absencesFor(s.id).filter(function (a) { return slotStartMin < a.endMin && slotEndMin > a.startMin; })[0];
-        staffRowsHtml += absence
-          ? '<div class="slot staff-absent">' + absence.reason + '</div>'
-          : '<div class="slot staff-avail"></div>';
+        if (absence) {
+          staffRowsHtml += '<div class="slot staff-absent">' + absence.reason + '</div>';
+          continue;
+        }
+        // 不在でなければ、その時間に普通車/大型車どちらかを実際に対応しているかをレーンの予約から逆引きする
+        var busyRes = staffReservationAt(s.id, i);
+        if (busyRes) {
+          var vcls = busyRes.laneType === 'normal' ? 'staff-busy-normal' : 'staff-busy-large';
+          var vlabel = busyRes.laneType === 'normal' ? '普通車' : '大型車';
+          staffRowsHtml += '<div class="slot ' + vcls + '">' + vlabel + '</div>';
+        } else {
+          staffRowsHtml += '<div class="slot staff-avail"></div>';
+        }
       }
       staffRowsHtml += '</div>';
     });
