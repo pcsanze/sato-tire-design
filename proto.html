@@ -72,25 +72,31 @@
   .date-nav { display:flex; align-items:center; justify-content:space-between; font-size:.84rem; font-weight:700; }
   .date-nav button { background:none; border:none; color: var(--ink-soft); font-size: 1rem; padding: 4px 10px; }
 
-  .segtabs { display: inline-flex; gap: 3px; padding: 3px; background: var(--surface-alt); border-radius: 999px; border: 1px solid var(--line); width: 100%; }
-  .segtab { flex: 1; border: none; background: transparent; color: var(--ink-soft); font-size: .76rem; font-weight: 700; padding: 8px 10px; border-radius: 999px; text-align: center; }
-  .segtab.active { background: var(--amber); color: #2A1200; }
+  /* 予約状況グリッド：左に固定のレーン名列、右に横スクロールする1本の領域(ルーラー＋全レーン行)。
+     全レーンが同じ領域の中で縦に並んでいるだけなので、スワイプすると必ず全レーンが同時に動く。 */
+  .sched-grid { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .sched-lanenames { flex-shrink: 0; width: 56px; display: flex; flex-direction: column; background: var(--surface-alt); border-right: 1px solid var(--line); }
+  .lanename-cell { height: 48px; display: flex; align-items: center; justify-content: center; font-size: .6rem; font-weight: 700; text-align: center; padding: 2px; border-bottom: 1px solid var(--line); line-height: 1.15; }
+  .lanename-cell.ruler-spacer { height: 20px; font-weight: 400; color: var(--ink-soft); }
+  .lanename-cell.group-large { background: var(--paper); }
 
-  .lane-block { display: flex; flex-direction: column; gap: 6px; }
-  .lane-head { display:flex; align-items:center; justify-content:space-between; font-size:.72rem; }
-  .lane-head .lane-name { font-weight: 700; }
-  .lane-strip { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 2px; }
-  .slot { flex-shrink: 0; min-width: 34px; height: 42px; border-radius: 6px; background: var(--surface-alt); border: 1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size: .58rem; color: var(--ink-soft); position: relative; cursor: default; }
+  .sched-scroll { flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .sched-inner { display: flex; flex-direction: column; width: max-content; }
+  .ruler-row { display: flex; height: 20px; }
+  .ruler-row .rcell { flex-shrink: 0; width: 66px; font-size: .56rem; color: var(--ink-soft); text-align: center; display: flex; align-items: center; justify-content: center; }
+  .lane-row { display: flex; height: 48px; border-bottom: 1px solid var(--line); }
+  .lane-row.group-large { background: var(--paper); }
+
+  .slot { flex-shrink: 0; width: 66px; height: 48px; border-right: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .56rem; color: var(--ink-soft); position: relative; cursor: default; padding: 1px 3px; text-align: center; overflow: hidden; }
+  .lane-row.group-large .slot { background: var(--paper); }
   .slot.slot-clickable { cursor: pointer; }
-  .slot.busy { background: var(--busy-soft); border-color: var(--busy); color: var(--busy); font-weight: 700; flex-direction: column; gap: 1px; }
-  .slot.pending { background: var(--pending-soft); border: 1px dashed var(--pending); color: var(--pending); font-weight: 700; flex-direction: column; gap: 1px; }
-  .slot.cancelled { background: var(--surface-alt); border: 1px solid var(--line); opacity: .4; text-decoration: line-through; }
-  .slot.job-linked { border-style: double; border-width: 3px; }
-  .slot .job-tag { position:absolute; bottom:1px; left:1px; font-size: .48rem; background: var(--charcoal); color:#fff; border-radius: 3px; padding: 0 2px; line-height: 1.3; }
-  .slot .who { font-size: .54rem; line-height: 1.1; }
-  .slot .staff-dot { position:absolute; top:2px; right:2px; width:11px; height:11px; border-radius:50%; background: var(--charcoal); color:#fff; font-size:.42rem; display:flex; align-items:center; justify-content:center; font-weight:700; }
-  .time-ruler { display:flex; gap:3px; }
-  .time-ruler span { flex-shrink:0; min-width: 34px; font-size: .56rem; color: var(--ink-soft); text-align:center; }
+  .slot.busy { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
+  .slot.pending { background: var(--pending-soft); border-left: 1px dashed var(--pending); color: var(--pending); font-weight: 700; }
+  .slot.cancelled { background: var(--surface-alt); opacity: .4; text-decoration: line-through; }
+  .slot.job-linked { outline: 2px double var(--charcoal); outline-offset: -2px; }
+  .slot .job-tag { position: absolute; top: 1px; right: 1px; font-size: .42rem; background: var(--charcoal); color: #fff; border-radius: 3px; padding: 0 2px; line-height: 1.3; }
+  .slot .cust-name { font-size: .56rem; line-height: 1.08; word-break: break-word; }
+  .slot .staff-name { font-size: .48rem; opacity: .85; margin-top: 1px; }
 
   .legend { display:flex; gap:12px; font-size: .68rem; color: var(--ink-soft); flex-wrap: wrap; margin-top: 2px; }
   .legend .item { display:flex; align-items:center; gap:5px; }
@@ -114,9 +120,9 @@
   .summary-tile .lbl { font-size: .62rem; color: var(--ink-soft); margin-top: 2px; }
 
   #btn-toggle-mine.active { background: var(--amber); border-color: var(--amber); color: #2A1200; font-weight: 700; }
-  #lanes-wrap.filter-mine .slot.busy:not(.mine),
-  #lanes-wrap.filter-mine .slot.pending:not(.mine) { opacity: .25; }
-  #lanes-wrap.filter-mine .slot.mine { outline: 2px solid var(--amber); outline-offset: -1px; }
+  #sched-inner.filter-mine .slot.busy:not(.mine),
+  #sched-inner.filter-mine .slot.pending:not(.mine) { opacity: .25; }
+  #sched-inner.filter-mine .slot.mine { outline: 2px solid var(--amber); outline-offset: -2px; }
 
   .job-card { display: flex; gap: 10px; align-items: center; padding: 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-alt); cursor: pointer; }
   .job-card .icon-wrap { width: 40px; height: 40px; border-radius: 10px; background: var(--amber-soft); color: var(--amber); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.05rem; }
@@ -211,15 +217,15 @@
 
           <div id="summary-wrap"></div>
 
-          <div class="segtabs">
-            <button class="segtab active" data-lanetype="normal">普通車(4レーン)</button>
-            <button class="segtab" data-lanetype="large">大型車(3レーン)</button>
-          </div>
-
           <button class="btn btn-ghost btn-sm" id="btn-toggle-mine" style="align-self:flex-start;">☐ 自分の担当のみ表示</button>
 
-          <div id="ruler-wrap"></div>
-          <div id="lanes-wrap"></div>
+          <div class="sched-grid">
+            <div class="sched-lanenames" id="sched-lanenames"></div>
+            <div class="sched-scroll" id="sched-scroll">
+              <div class="sched-inner" id="sched-inner"></div>
+            </div>
+          </div>
+          <div style="font-size:.62rem; color:var(--ink-soft);">← 左右にスワイプ、全レーン同時に動きます →</div>
 
           <div class="mini-label">スタッフ稼働状況</div>
           <div id="staff-status-wrap"></div>
@@ -228,7 +234,6 @@
             <div class="item"><span class="swatch" style="background:var(--busy-soft); border:1px solid var(--busy);"></span>確定</div>
             <div class="item"><span class="swatch" style="background:var(--pending-soft); border:1px dashed var(--pending);"></span>仮予約</div>
             <div class="item"><span class="swatch" style="background:var(--surface-alt); border:1px solid var(--line);"></span>空き</div>
-            <div class="item"><span class="swatch" style="background:var(--charcoal); border-radius:50%;"></span>担当者</div>
           </div>
         </section>
 
@@ -292,7 +297,8 @@
   ];
   function staffById(id) { return STAFF.filter(function (s) { return s.id === id; })[0] || null; }
 
-  // 営業時間 9:00-18:00。普通車=15分刻み(36枠)・大型車=30分刻み(18枠)
+  // 営業時間 9:00-18:00。普通車・大型車とも表示グリッドは15分刻みに統一(スワイプ同調のため)。
+  // 大型車の実作業時間(1コマ30分)は、15分枠を2つ連続で使うことで表現する。
   function buildSlotLabels(stepMin) {
     var labels = [];
     var startMin = 9 * 60, endMin = 18 * 60;
@@ -302,32 +308,39 @@
     }
     return labels;
   }
-  var LANE_CONFIG = {
-    normal: { count: 4, stepMin: 15, labels: buildSlotLabels(15) },
-    large: { count: 3, stepMin: 30, labels: buildSlotLabels(30) }
-  };
+  var STEP_MIN = 15;
+  var TIME_LABELS = buildSlotLabels(STEP_MIN);
+  var ALL_LANES = [
+    { laneType: 'normal', lane: 1, label: '普通車1' },
+    { laneType: 'normal', lane: 2, label: '普通車2' },
+    { laneType: 'normal', lane: 3, label: '普通車3' },
+    { laneType: 'normal', lane: 4, label: '普通車4' },
+    { laneType: 'large', lane: 1, label: '大型車1' },
+    { laneType: 'large', lane: 2, label: '大型車2' },
+    { laneType: 'large', lane: 3, label: '大型車3' }
+  ];
 
-  // 予約(レーン制の短時間サービス)
+  // 予約(レーン制の短時間サービス)。氏名は略さずフルネームで保持する。
   var reservations = [
-    { id: 'R1', laneType: 'normal', lane: 1, slotStart: 0, slotCount: 2, customer: '佐藤 様', car: 'プリウス', service: 'タイヤ交換', staff: 'tanaka', status: 'confirmed' },
-    { id: 'R2', laneType: 'normal', lane: 1, slotStart: 6, slotCount: 1, customer: '伊藤 様', car: 'ヴィッツ', service: 'タイヤ点検', staff: null, status: 'pending' },
-    { id: 'R3', laneType: 'normal', lane: 2, slotStart: 4, slotCount: 2, customer: '山田 様', car: 'アクア', service: 'エンジンオイル交換', staff: 'suzuki', status: 'confirmed' },
-    { id: 'R4', laneType: 'normal', lane: 3, slotStart: 10, slotCount: 2, customer: '高橋 様', car: 'ノート', service: 'タイヤ交換', staff: 'takahashi', status: 'confirmed' },
-    { id: 'R5', laneType: 'normal', lane: 2, slotStart: 12, slotCount: 1, customer: '中村 様', car: 'フィット', service: 'タイヤ・ホイール取付', staff: null, status: 'pending' },
-    { id: 'R6', laneType: 'large', lane: 1, slotStart: 1, slotCount: 1, customer: '庄内運送 様', car: '2tトラック', service: 'タイヤ交換(大型)', staff: 'tanaka', status: 'confirmed' },
-    { id: 'R7', laneType: 'large', lane: 2, slotStart: 4, slotCount: 1, customer: '出羽運輸 様', car: '4tトラック', service: 'タイヤ点検', staff: null, status: 'pending' },
+    { id: 'R1', laneType: 'normal', lane: 1, slotStart: 0, slotCount: 2, customer: '佐藤 直樹 様', car: 'プリウス', service: 'タイヤ交換', staff: 'tanaka', status: 'confirmed' },
+    { id: 'R2', laneType: 'normal', lane: 1, slotStart: 6, slotCount: 1, customer: '伊藤 舞 様', car: 'ヴィッツ', service: 'タイヤ点検', staff: null, status: 'pending' },
+    { id: 'R3', laneType: 'normal', lane: 2, slotStart: 4, slotCount: 2, customer: '山田 陽子 様', car: 'アクア', service: 'エンジンオイル交換', staff: 'suzuki', status: 'confirmed' },
+    { id: 'R4', laneType: 'normal', lane: 3, slotStart: 10, slotCount: 2, customer: '村上 誠 様', car: 'ノート', service: 'タイヤ交換', staff: 'takahashi', status: 'confirmed' },
+    { id: 'R5', laneType: 'normal', lane: 2, slotStart: 12, slotCount: 1, customer: '中村 恵 様', car: 'フィット', service: 'タイヤ・ホイール取付', staff: null, status: 'pending' },
+    { id: 'R6', laneType: 'large', lane: 1, slotStart: 2, slotCount: 2, customer: '庄内運送(株) 様', car: '2tトラック', service: 'タイヤ交換(大型)', staff: 'tanaka', status: 'confirmed' },
+    { id: 'R7', laneType: 'large', lane: 2, slotStart: 8, slotCount: 2, customer: '出羽運輸(株) 様', car: '4tトラック', service: 'タイヤ点検', staff: null, status: 'pending' },
     // 預かり案件(下記jobs)も、入庫・お渡しの受付作業はレーンの時間を使う実務のため、
     // その日にレーン枠を持つ案件は通常の予約と同じデータ構造でレーンに反映する(jobIdで案件と相互リンク)
-    { id: 'R8', laneType: 'normal', lane: 4, slotStart: 0, slotCount: 1, customer: '伊藤 様', car: 'CX-5', service: 'コーティング(入庫受付)', staff: 'suzuki', status: 'confirmed', kind: 'intake', jobId: 'J2' },
-    { id: 'R9', laneType: 'normal', lane: 4, slotStart: 28, slotCount: 1, customer: '伊藤 様', car: 'CX-5', service: 'コーティング(お渡し)', staff: 'suzuki', status: 'confirmed', kind: 'pickup', jobId: 'J2' }
+    { id: 'R8', laneType: 'normal', lane: 4, slotStart: 0, slotCount: 1, customer: '渡辺 久美子 様', car: 'CX-5', service: 'コーティング(入庫受付)', staff: 'suzuki', status: 'confirmed', kind: 'intake', jobId: 'J2' },
+    { id: 'R9', laneType: 'normal', lane: 4, slotStart: 28, slotCount: 1, customer: '渡辺 久美子 様', car: 'CX-5', service: 'コーティング(お渡し)', staff: 'suzuki', status: 'confirmed', kind: 'pickup', jobId: 'J2' }
   ];
 
   // 預かり案件(長時間・預かり制サービス)
   var jobs = [
-    { id: 'J1', customer: '鈴木 様', service: '鈑金塗装', car: 'アルファード', dropoff: '2026/08/11', due: '2026/08/14', staff: 'takahashi', status: 'progress', notes: 'リアバンパー損傷、保険対応あり' },
-    { id: 'J2', customer: '伊藤 様', service: 'Dr ハイブリッドコーティング', car: 'CX-5', dropoff: '2026/08/12', due: '2026/08/12', staff: 'suzuki', status: 'progress', notes: '' },
-    { id: 'J3', customer: '渡辺 様', service: 'カーフィルム施工', car: 'ヤリス', dropoff: '2026/08/13', due: '2026/08/13', staff: null, status: 'waiting', notes: 'フロントガラスのみ希望' },
-    { id: 'J4', customer: '小林 様', service: 'ヘッドライト修理', car: 'N-BOX', dropoff: '2026/08/10', due: '2026/08/10', staff: 'tanaka', status: 'done', notes: '' }
+    { id: 'J1', customer: '斎藤 亮太 様', service: '鈑金塗装', car: 'アルファード', dropoff: '2026/08/11', due: '2026/08/14', staff: 'takahashi', status: 'progress', notes: 'リアバンパー損傷、保険対応あり' },
+    { id: 'J2', customer: '渡辺 久美子 様', service: 'Dr ハイブリッドコーティング', car: 'CX-5', dropoff: '2026/08/12', due: '2026/08/12', staff: 'suzuki', status: 'progress', notes: '' },
+    { id: 'J3', customer: '木村 拓也 様', service: 'カーフィルム施工', car: 'ヤリス', dropoff: '2026/08/13', due: '2026/08/13', staff: null, status: 'waiting', notes: 'フロントガラスのみ希望' },
+    { id: 'J4', customer: '小林 さくら 様', service: 'ヘッドライト修理', car: 'N-BOX', dropoff: '2026/08/10', due: '2026/08/10', staff: 'tanaka', status: 'done', notes: '' }
   ];
 
   // スタッフの不在(出張・外対応)。時刻は分単位(9:00=540分)で管理
@@ -348,7 +361,6 @@
   var statusLabel = { confirmed: '確定', pending: '仮予約', cancelled: 'キャンセル' };
   var jobStatusLabel = { waiting: '未着手', progress: '作業中', done: '完了' };
 
-  var currentLaneType = 'normal';
   var loggedInStaffId = 'tanaka';
   var filterMine = false;
 
@@ -414,17 +426,8 @@
   document.getElementById('btn-next-day').addEventListener('click', function () { showToast('デモ版では日付は8/12固定です'); });
 
   // ---------------------------------------------------------------
-  // 今日の予約状況(レーン別タイムライン)
+  // 今日の予約状況(全レーンを1つの横スクロール領域にまとめる。普通車/大型車のタブ切替は廃止)
   // ---------------------------------------------------------------
-  document.querySelectorAll('.segtab[data-lanetype]').forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      document.querySelectorAll('.segtab[data-lanetype]').forEach(function (t) { t.classList.remove('active'); });
-      tab.classList.add('active');
-      currentLaneType = tab.getAttribute('data-lanetype');
-      renderSchedule();
-    });
-  });
-
   function reservationAt(laneType, lane, slotIndex) {
     for (var i = 0; i < reservations.length; i++) {
       var r = reservations[i];
@@ -434,29 +437,33 @@
   }
 
   function renderSchedule() {
-    var cfg = LANE_CONFIG[currentLaneType];
+    // 左固定のレーン名列
+    var lanenamesWrap = document.getElementById('sched-lanenames');
+    var lanenameHtml = '<div class="lanename-cell ruler-spacer">時刻</div>';
+    ALL_LANES.forEach(function (l) {
+      lanenameHtml += '<div class="lanename-cell' + (l.laneType === 'large' ? ' group-large' : '') + '">' + l.label + '</div>';
+    });
+    lanenamesWrap.innerHTML = lanenameHtml;
 
-    var rulerWrap = document.getElementById('ruler-wrap');
-    var rulerHtml = '<div class="time-ruler" style="padding-left:0;">';
-    cfg.labels.forEach(function (label, i) {
-      // 普通車は30分ごと(2枠に1回)、大型車は毎枠(30分刻みなのでそのまま)だけラベル表示
-      var show = currentLaneType === 'large' || i % 2 === 0;
-      rulerHtml += '<span>' + (show ? label : '') + '</span>';
+    // 右の横スクロール領域：ルーラー行＋全レーン行を縦に並べる(同じ1つのスクロールに入っているので必ず同調する)
+    var inner = document.getElementById('sched-inner');
+    inner.classList.toggle('filter-mine', filterMine);
+
+    var rulerHtml = '<div class="ruler-row">';
+    TIME_LABELS.forEach(function (label, i) {
+      rulerHtml += '<div class="rcell">' + (i % 2 === 0 ? label : '') + '</div>'; // 30分ごとにラベル表示
     });
     rulerHtml += '</div>';
-    rulerWrap.innerHTML = rulerHtml;
 
-    var lanesWrap = document.getElementById('lanes-wrap');
-    lanesWrap.classList.toggle('filter-mine', filterMine);
-    var html = '';
     var counts = { confirmed: 0, pending: 0, available: 0 };
     var countedResIds = {};
-    for (var lane = 1; lane <= cfg.count; lane++) {
-      html += '<div class="lane-block"><div class="lane-head"><span class="lane-name">レーン' + lane + '</span></div><div class="lane-strip" data-lane="' + lane + '">';
-      for (var i = 0; i < cfg.labels.length; i++) {
-        var r = reservationAt(currentLaneType, lane, i);
+    var lanesHtml = '';
+    ALL_LANES.forEach(function (l) {
+      lanesHtml += '<div class="lane-row' + (l.laneType === 'large' ? ' group-large' : '') + '">';
+      for (var i = 0; i < TIME_LABELS.length; i++) {
+        var r = reservationAt(l.laneType, l.lane, i);
         if (!r) {
-          html += '<div class="slot"></div>';
+          lanesHtml += '<div class="slot"></div>';
           counts.available++;
         } else {
           var cls = r.status === 'cancelled' ? 'cancelled' : (r.status === 'pending' ? 'pending' : 'busy');
@@ -464,9 +471,9 @@
           var mine = r.staff === loggedInStaffId ? ' mine' : '';
           var jobLinked = r.jobId ? ' job-linked' : '';
           var jobTag = r.kind === 'intake' ? '<span class="job-tag">入庫</span>' : r.kind === 'pickup' ? '<span class="job-tag">渡</span>' : '';
-          html += '<div class="slot ' + cls + mine + jobLinked + ' slot-clickable" data-resid="' + r.id + '" data-staffid="' + (r.staff || '') + '">' +
-            '<span class="staff-dot">' + (st ? st.initial : '?') + '</span>' +
-            '<span class="who">' + r.customer.replace(' 様', '') + '</span>' +
+          lanesHtml += '<div class="slot ' + cls + mine + jobLinked + ' slot-clickable" data-resid="' + r.id + '">' +
+            '<span class="cust-name">' + r.customer + '</span>' +
+            '<span class="staff-name">' + (st ? st.name : '未定') + '</span>' +
             jobTag +
             '</div>';
           // 予約は複数コマにまたがるので、件数は予約IDごとに1回だけ数える(コマ数と混同しないため)
@@ -477,11 +484,12 @@
           }
         }
       }
-      html += '</div></div>';
-    }
-    lanesWrap.innerHTML = html;
+      lanesHtml += '</div>';
+    });
 
-    lanesWrap.querySelectorAll('.slot-clickable').forEach(function (el) {
+    inner.innerHTML = rulerHtml + lanesHtml;
+
+    inner.querySelectorAll('.slot-clickable').forEach(function (el) {
       el.addEventListener('click', function () { openResDetail(el.getAttribute('data-resid')); });
     });
 
@@ -521,12 +529,11 @@
   function openResDetail(id) {
     var r = reservations.filter(function (x) { return x.id === id; })[0];
     if (!r) return;
-    var cfg = LANE_CONFIG[r.laneType];
-    var startLabel = cfg.labels[r.slotStart];
+    var startLabel = TIME_LABELS[r.slotStart];
     var endMinIdx = r.slotStart + r.slotCount;
-    var endLabel = endMinIdx < cfg.labels.length ? cfg.labels[endMinIdx] : '18:00';
-    var resStartMin = DAY_START_MIN + r.slotStart * cfg.stepMin;
-    var resEndMin = DAY_START_MIN + endMinIdx * cfg.stepMin;
+    var endLabel = endMinIdx < TIME_LABELS.length ? TIME_LABELS[endMinIdx] : '18:00';
+    var resStartMin = DAY_START_MIN + r.slotStart * STEP_MIN;
+    var resEndMin = DAY_START_MIN + endMinIdx * STEP_MIN;
 
     function render() {
       var body = document.getElementById('resdetail-body');
@@ -594,8 +601,7 @@
       return '<div style="font-size:.72rem; color:var(--ink-soft);">本日(8/12)のレーン枠の予定はありません(入庫・お渡しが別日のため)</div>';
     }
     var rows = linked.map(function (r) {
-      var cfg = LANE_CONFIG[r.laneType];
-      var t = cfg.labels[r.slotStart];
+      var t = TIME_LABELS[r.slotStart];
       var laneLabel = (r.laneType === 'normal' ? '普通車' : '大型車') + ' レーン' + r.lane;
       return '<button class="btn btn-ghost btn-sm btn-goto-res" data-resid="' + r.id + '" style="justify-content:flex-start;">🔗 ' + (kindLabel[r.kind] || r.service) + '：' + t + '〜・' + laneLabel + '</button>';
     }).join('');
