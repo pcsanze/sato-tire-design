@@ -54,7 +54,9 @@
 
   main { padding: 24px 12px 60px; }
 
-  .phone-frame { width: 100%; max-width: 400px; margin: 0 auto; border-radius: 28px; background: var(--surface); box-shadow: var(--shadow), 0 0 0 1px var(--line); overflow: hidden; }
+  /* 横向き(ランドスケープ)で使う前提のため、縦画面用の400px上限では横幅を持て余す。
+     スマホの横向き実寸(iPhone等でおおよそ700〜900px)まで伸びられるようにしておく。 */
+  .phone-frame { width: 100%; max-width: 900px; margin: 0 auto; border-radius: 28px; background: var(--surface); box-shadow: var(--shadow), 0 0 0 1px var(--line); overflow: hidden; }
   .phone-status { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px 2px; font-size: .7rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
   .phone-status .dots { display:flex; gap:3px; }
   .phone-status .dots span { width:4px; height:4px; border-radius:50%; background: var(--ink-soft); display:block; }
