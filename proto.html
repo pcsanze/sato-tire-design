@@ -74,13 +74,16 @@
 
   /* 予約状況グリッド：左に固定のレーン名列、右に横スクロールする1本の領域(ルーラー＋全レーン行)。
      全レーンが同じ領域の中で縦に並んでいるだけなので、スワイプすると必ず全レーンが同時に動く。 */
-  .sched-grid { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .sched-grid { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; min-width: 0; max-width: 100%; }
   .sched-lanenames { flex-shrink: 0; width: 56px; display: flex; flex-direction: column; background: var(--surface-alt); border-right: 1px solid var(--line); }
   .lanename-cell { height: 48px; display: flex; align-items: center; justify-content: center; font-size: .6rem; font-weight: 700; text-align: center; padding: 2px; border-bottom: 1px solid var(--line-strong); line-height: 1.15; }
   .lanename-cell.ruler-spacer { height: 20px; font-weight: 400; color: var(--ink-soft); }
   .lanename-cell.group-large { background: var(--paper); }
 
-  .sched-scroll { flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* flex:1の子要素は、中身(2000px超の横長グリッド)より縮まないのがデフォルト仕様(min-width:autoの罠)。
+     min-width:0を明示しないと、狭い画面(iPhone13 mini幅375px等)でoverflow-x:autoが効かず、
+     親のphone-frameのoverflow:hiddenで右側が切れて見える不具合になる。 */
+  .sched-scroll { flex: 1; min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .sched-inner { display: flex; flex-direction: column; width: max-content; }
   .ruler-row { display: flex; height: 20px; }
   .ruler-row .rcell { flex-shrink: 0; width: 66px; font-size: .56rem; color: var(--ink-soft); text-align: left; display: flex; align-items: center; justify-content: flex-start; padding-left: 3px; font-variant-numeric: tabular-nums; }
