@@ -95,8 +95,8 @@
      (border-box内で content=47pxになる)と子の48px指定が競合し、線が子要素に隠れて見えなくなるため。 */
   .slot { flex-shrink: 0; width: 66px; height: 62px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line-strong); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .56rem; color: var(--ink-soft); position: relative; cursor: default; padding: 1px 3px; text-align: center; overflow: hidden; }
   .slot.slot-clickable { cursor: pointer; }
-  .slot.busy { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
-  .slot.pending { background: var(--pending-soft); border-left: 1px dashed var(--pending); color: var(--pending); font-weight: 700; }
+  .slot.busy { background: var(--busy-soft); color: var(--busy); font-weight: 700; box-shadow: inset 0 0 0 2px var(--busy); }
+  .slot.pending { background: var(--pending-soft); border-left: 1px dashed var(--pending); color: var(--pending); font-weight: 700; box-shadow: inset 0 0 0 2px var(--pending); }
   .slot.cancelled { background: var(--surface-alt); opacity: .4; text-decoration: line-through; }
   .slot.job-linked { outline: 2px double var(--charcoal); outline-offset: -2px; }
   .slot .job-tag { position: absolute; top: 1px; right: 1px; font-size: .42rem; background: var(--charcoal); color: #fff; border-radius: 3px; padding: 0 2px; line-height: 1.3; }
@@ -112,9 +112,9 @@
 
   /* スタッフ稼働状況：レーン表とは別の独立した表(別のsched-grid)。列幅66px・36列は揃えてあるので時間軸は一致する */
   .slot.staff-avail { background: var(--surface); }
-  .slot.staff-absent { background: repeating-linear-gradient(135deg, var(--busy-soft), var(--busy-soft) 4px, var(--surface) 4px, var(--surface) 8px); color: var(--busy); font-weight: 700; }
-  .slot.staff-busy-normal { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
-  .slot.staff-busy-large { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
+  .slot.staff-absent { background: repeating-linear-gradient(135deg, var(--busy-soft), var(--busy-soft) 4px, var(--surface) 4px, var(--surface) 8px); color: var(--busy); font-weight: 700; box-shadow: inset 0 0 0 2px var(--busy); }
+  .slot.staff-busy-normal { background: var(--busy-soft); color: var(--busy); font-weight: 700; box-shadow: inset 0 0 0 2px var(--busy); }
+  .slot.staff-busy-large { background: var(--busy-soft); color: var(--busy); font-weight: 700; box-shadow: inset 0 0 0 2px var(--busy); }
   .staff-chip.unavailable { opacity: .55; }
   .staff-chip .warn { font-size: .62rem; color: var(--busy); font-weight: 700; margin-left: 2px; }
 

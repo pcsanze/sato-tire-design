@@ -108,8 +108,8 @@
   .lane-head .lane-note { color: var(--ink-soft); }
   .lane-strip { display: flex; gap: 0; overflow-x: auto; padding-bottom: 2px; }
   .slot { flex-shrink: 0; width: 64px; height: 46px; background: var(--surface-alt); border-right: 1px solid var(--line); display:flex; flex-direction: column; align-items:center; justify-content:center; font-size: .6rem; color: var(--ink-soft); position: relative; padding: 2px 4px; text-align: center; }
-  .slot.busy { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
-  .slot.pending { background: var(--pending-soft); border-left: 1px dashed var(--pending); color: var(--pending); font-weight: 700; }
+  .slot.busy { background: var(--busy-soft); color: var(--busy); font-weight: 700; box-shadow: inset 0 0 0 2px var(--busy); }
+  .slot.pending { background: var(--pending-soft); border-left: 1px dashed var(--pending); color: var(--pending); font-weight: 700; box-shadow: inset 0 0 0 2px var(--pending); }
   .slot .who { font-size: .58rem; line-height: 1.15; }
   .slot .staff-dot { font-size: .5rem; font-weight: 700; opacity: .85; margin-top: 1px; }
   .time-ruler { display:flex; gap:0; }
