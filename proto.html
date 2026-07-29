@@ -566,7 +566,7 @@
         if (busyRes) {
           var vcls = busyRes.laneType === 'normal' ? 'staff-busy-normal' : 'staff-busy-large';
           var vlabel = (busyRes.laneType === 'normal' ? '普通車' : '大型車') + busyRes.lane;
-          staffRowsHtml += '<div class="slot ' + vcls + '">' + vlabel + '</div>';
+          staffRowsHtml += '<div class="slot ' + vcls + '"><span class="cust-name">' + vlabel + '</span><span class="staff-name">' + busyRes.service + '</span></div>';
         } else {
           staffRowsHtml += '<div class="slot staff-avail"></div>';
         }
