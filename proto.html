@@ -78,7 +78,7 @@
      全レーンが同じ領域の中で縦に並んでいるだけなので、スワイプすると必ず全レーンが同時に動く。 */
   .sched-grid { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; min-width: 0; max-width: 100%; }
   .sched-lanenames { flex-shrink: 0; width: 56px; display: flex; flex-direction: column; background: var(--surface-alt); border-right: 1px solid var(--line); }
-  .lanename-cell { height: 48px; display: flex; align-items: center; justify-content: center; font-size: .6rem; font-weight: 700; text-align: center; padding: 2px; border-bottom: 1px solid var(--line-strong); line-height: 1.15; }
+  .lanename-cell { height: 62px; display: flex; align-items: center; justify-content: center; font-size: .6rem; font-weight: 700; text-align: center; padding: 2px; border-bottom: 1px solid var(--line-strong); line-height: 1.15; }
   .lanename-cell.ruler-spacer { height: 20px; font-weight: 400; color: var(--ink-soft); }
 
   /* flex:1の子要素は、中身(2000px超の横長グリッド)より縮まないのがデフォルト仕様(min-width:autoの罠)。
@@ -91,12 +91,12 @@
   .sched-inner { display: flex; flex-direction: column; width: max-content; }
   .ruler-row { display: flex; height: 20px; border-bottom: 1px solid var(--line-strong); }
   .ruler-row .rcell { flex-shrink: 0; width: 66px; font-size: .56rem; color: var(--ink-soft); text-align: left; display: flex; align-items: center; justify-content: flex-start; padding-left: 3px; font-variant-numeric: tabular-nums; }
-  .lane-row { display: flex; height: 48px; }
+  .lane-row { display: flex; height: 62px; }
 
   /* 横線は行(.lane-row)ではなくセル(.slot)自身に持たせる。
      .lane-rowとその子.slotが両方height:48px固定だと、行側にborder-bottomを足した分
      (border-box内で content=47pxになる)と子の48px指定が競合し、線が子要素に隠れて見えなくなるため。 */
-  .slot { flex-shrink: 0; width: 66px; height: 48px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line-strong); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .56rem; color: var(--ink-soft); position: relative; cursor: default; padding: 1px 3px; text-align: center; overflow: hidden; }
+  .slot { flex-shrink: 0; width: 66px; height: 62px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line-strong); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .56rem; color: var(--ink-soft); position: relative; cursor: default; padding: 1px 3px; text-align: center; overflow: hidden; }
   .slot.slot-clickable { cursor: pointer; }
   .slot.busy { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
   .slot.pending { background: var(--pending-soft); border-left: 1px dashed var(--pending); color: var(--pending); font-weight: 700; }
@@ -104,6 +104,7 @@
   .slot.job-linked { outline: 2px double var(--charcoal); outline-offset: -2px; }
   .slot .job-tag { position: absolute; top: 1px; right: 1px; font-size: .42rem; background: var(--charcoal); color: #fff; border-radius: 3px; padding: 0 2px; line-height: 1.3; }
   .slot .cust-name { font-size: .56rem; line-height: 1.08; word-break: break-word; }
+  .slot .svc-name { font-size: .48rem; opacity: .85; margin-top: 1px; word-break: break-word; line-height: 1.1; }
   .slot .staff-name { font-size: .48rem; opacity: .85; margin-top: 1px; }
 
   .legend { display:flex; gap:12px; font-size: .68rem; color: var(--ink-soft); flex-wrap: wrap; margin-top: 2px; }
@@ -450,6 +451,15 @@
     return null;
   }
 
+  // slotCount(15分単位のコマ数)を「30分」「1時間」「1時間30分」のような表示用文字列にする
+  function formatDuration(slotCount) {
+    var totalMin = slotCount * STEP_MIN;
+    var h = Math.floor(totalMin / 60), m = totalMin % 60;
+    if (h === 0) return m + '分';
+    if (m === 0) return h + '時間';
+    return h + '時間' + m + '分';
+  }
+
   // 特定のスタッフが、指定した列(時間帯)に普通車/大型車どちらかのレーン予約を実際に対応しているかを調べる
   function staffReservationAt(staffId, slotIndex) {
     for (var i = 0; i < reservations.length; i++) {
@@ -491,6 +501,7 @@
           var jobTag = r.kind === 'intake' ? '<span class="job-tag">入庫</span>' : r.kind === 'pickup' ? '<span class="job-tag">渡</span>' : '';
           lanesHtml += '<div class="slot ' + cls + jobLinked + ' slot-clickable" data-resid="' + r.id + '">' +
             '<span class="cust-name">' + r.customer + '</span>' +
+            '<span class="svc-name">' + r.service + '(' + formatDuration(r.slotCount) + ')</span>' +
             '<span class="staff-name">' + (st ? st.name : '未定') + '</span>' +
             jobTag +
             '</div>';
