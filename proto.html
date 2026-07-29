@@ -82,7 +82,10 @@
   /* flex:1の子要素は、中身(2000px超の横長グリッド)より縮まないのがデフォルト仕様(min-width:autoの罠)。
      min-width:0を明示しないと、狭い画面(iPhone13 mini幅375px等)でoverflow-x:autoが効かず、
      親のphone-frameのoverflow:hiddenで右側が切れて見える不具合になる。 */
-  .sched-scroll { flex: 1; min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* overscroll-behavior-x: 3表のうち今指で触れている1つだけがネイティブの端バウンス(ラバーバンド)を
+     起こし、JSで位置合わせしているだけの他の2つはバウンスしないため、端まで行った時に
+     その1つだけ余白が見える非対称が起きていた。バウンス自体を止めて揃える。 */
+  .sched-scroll { flex: 1; min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
   .sched-inner { display: flex; flex-direction: column; width: max-content; }
   .ruler-row { display: flex; height: 20px; border-bottom: 1px solid var(--line-strong); }
   .ruler-row .rcell { flex-shrink: 0; width: 66px; font-size: .56rem; color: var(--ink-soft); text-align: left; display: flex; align-items: center; justify-content: flex-start; padding-left: 3px; font-variant-numeric: tabular-nums; }
@@ -122,11 +125,6 @@
   .summary-tile.pending .num { color: var(--pending); }
   .summary-tile.available .num { color: var(--available); }
   .summary-tile .lbl { font-size: .62rem; color: var(--ink-soft); margin-top: 2px; }
-
-  #btn-toggle-mine.active { background: var(--amber); border-color: var(--amber); color: #2A1200; font-weight: 700; }
-  #sched-inner.filter-mine .slot.busy:not(.mine),
-  #sched-inner.filter-mine .slot.pending:not(.mine) { opacity: .25; }
-  #sched-inner.filter-mine .slot.mine { outline: 2px solid var(--amber); outline-offset: -2px; }
 
   .job-card { display: flex; gap: 10px; align-items: center; padding: 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-alt); cursor: pointer; }
   .job-card .icon-wrap { width: 40px; height: 40px; border-radius: 10px; background: var(--amber-soft); color: var(--amber); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.05rem; }
@@ -220,8 +218,6 @@
           <div class="date-nav"><button id="btn-prev-day">◀</button><span>2026年8月12日(水)</span><button id="btn-next-day">▶</button></div>
 
           <div id="summary-wrap"></div>
-
-          <button class="btn btn-ghost btn-sm" id="btn-toggle-mine" style="align-self:flex-start;">☐ 自分の担当のみ表示</button>
 
           <div class="mini-label">普通車</div>
           <div class="sched-grid">
@@ -383,7 +379,6 @@
   var jobStatusLabel = { waiting: '未着手', progress: '作業中', done: '完了' };
 
   var loggedInStaffId = 'tanaka';
-  var filterMine = false;
 
   // ---------------------------------------------------------------
   // ログイン(誰としてログインするか選ぶ→ヘッダーの名前・フィルタに反映)
@@ -421,13 +416,6 @@
     document.getElementById('page-login').hidden = false;
     document.getElementById('l-email').value = '';
     document.getElementById('l-pass').value = '';
-  });
-
-  document.getElementById('btn-toggle-mine').addEventListener('click', function () {
-    filterMine = !filterMine;
-    this.textContent = (filterMine ? '☑' : '☐') + ' 自分の担当のみ表示';
-    this.classList.toggle('active', filterMine);
-    renderSchedule();
   });
 
   // ---------------------------------------------------------------
@@ -478,7 +466,6 @@
     lanenamesWrap.innerHTML = lanenameHtml;
 
     var inner = document.getElementById(innerId);
-    inner.classList.toggle('filter-mine', filterMine);
 
     var rulerHtml = '<div class="ruler-row">';
     TIME_LABELS.forEach(function (label) {
@@ -498,10 +485,9 @@
         } else {
           var cls = r.status === 'cancelled' ? 'cancelled' : (r.status === 'pending' ? 'pending' : 'busy');
           var st = staffById(r.staff);
-          var mine = r.staff === loggedInStaffId ? ' mine' : '';
           var jobLinked = r.jobId ? ' job-linked' : '';
           var jobTag = r.kind === 'intake' ? '<span class="job-tag">入庫</span>' : r.kind === 'pickup' ? '<span class="job-tag">渡</span>' : '';
-          lanesHtml += '<div class="slot ' + cls + mine + jobLinked + ' slot-clickable" data-resid="' + r.id + '">' +
+          lanesHtml += '<div class="slot ' + cls + jobLinked + ' slot-clickable" data-resid="' + r.id + '">' +
             '<span class="cust-name">' + r.customer + '</span>' +
             '<span class="staff-name">' + (st ? st.name : '未定') + '</span>' +
             jobTag +
