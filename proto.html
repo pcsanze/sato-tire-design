@@ -79,6 +79,7 @@
   .lanename-cell { height: 48px; display: flex; align-items: center; justify-content: center; font-size: .6rem; font-weight: 700; text-align: center; padding: 2px; border-bottom: 1px solid var(--line-strong); line-height: 1.15; }
   .lanename-cell.ruler-spacer { height: 20px; font-weight: 400; color: var(--ink-soft); }
   .lanename-cell.group-large { background: var(--paper); }
+  .lanename-cell.group-gap { margin-top: 6px; }
 
   /* flex:1の子要素は、中身(2000px超の横長グリッド)より縮まないのがデフォルト仕様(min-width:autoの罠)。
      min-width:0を明示しないと、狭い画面(iPhone13 mini幅375px等)でoverflow-x:autoが効かず、
@@ -89,6 +90,7 @@
   .ruler-row .rcell { flex-shrink: 0; width: 66px; font-size: .56rem; color: var(--ink-soft); text-align: left; display: flex; align-items: center; justify-content: flex-start; padding-left: 3px; font-variant-numeric: tabular-nums; }
   .lane-row { display: flex; height: 48px; }
   .lane-row.group-large { background: var(--paper); }
+  .lane-row.group-gap { margin-top: 6px; }
 
   /* 横線は行(.lane-row)ではなくセル(.slot)自身に持たせる。
      .lane-rowとその子.slotが両方height:48px固定だと、行側にborder-bottomを足した分
@@ -449,7 +451,8 @@
     var lanenamesWrap = document.getElementById('sched-lanenames');
     var lanenameHtml = '<div class="lanename-cell ruler-spacer">時刻</div>';
     ALL_LANES.forEach(function (l) {
-      lanenameHtml += '<div class="lanename-cell' + (l.laneType === 'large' ? ' group-large' : '') + '">' + l.label + '</div>';
+      var isFirstLarge = l.laneType === 'large' && l.lane === 1;
+      lanenameHtml += '<div class="lanename-cell' + (l.laneType === 'large' ? ' group-large' : '') + (isFirstLarge ? ' group-gap' : '') + '">' + l.label + '</div>';
     });
     lanenameHtml += '<div class="lanename-cell section-label">スタッフ</div>';
     STAFF.forEach(function (s) {
@@ -471,7 +474,8 @@
     var countedResIds = {};
     var lanesHtml = '';
     ALL_LANES.forEach(function (l) {
-      lanesHtml += '<div class="lane-row' + (l.laneType === 'large' ? ' group-large' : '') + '">';
+      var isFirstLargeLane = l.laneType === 'large' && l.lane === 1;
+      lanesHtml += '<div class="lane-row' + (l.laneType === 'large' ? ' group-large' : '') + (isFirstLargeLane ? ' group-gap' : '') + '">';
       for (var i = 0; i < TIME_LABELS.length; i++) {
         var r = reservationAt(l.laneType, l.lane, i);
         if (!r) {
