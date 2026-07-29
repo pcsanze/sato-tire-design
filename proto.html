@@ -183,7 +183,7 @@
 
 <main>
   <div class="phone-frame">
-    <div class="phone-status"><span>9:41</span><span class="dots"><span></span><span></span><span></span></span></div>
+    <div class="phone-status"><span id="clock">9:41</span><span class="dots"><span></span><span></span><span></span></span></div>
     <div class="phone-body">
 
       <!-- ログイン -->
@@ -758,23 +758,20 @@
   // ---------------------------------------------------------------
   // 3つの表(普通車・大型車・スタッフ稼働状況)は別々のDOMだが、どれをスワイプしても
   // 全部同じ横スクロール位置になるよう同期させる。
-  // scrollイベントは指の動きに合わせて非常に高頻度で発火するため、発火のたびに他2つの
-  // scrollLeftを同期的に書き換えると、iOS等の慣性スクロール(スーッと流れる動き)が
-  // カクついてしまう。requestAnimationFrameで「1フレームにつき最大1回」に間引くことで、
-  // メインスレッドの負荷を減らし、ネイティブの滑らかなスクロール感触を壊さないようにする。
+  // 以前はrequestAnimationFrameで1フレーム遅らせてから反映していたが、それだと触れていない
+  // 2つの表が常に1フレーム分「後追い」する遅延として体感されてしまう。scrollイベント自体は
+  // ブラウザ側で概ね1フレームに1回程度に間引かれているため、ここでは待たずに即座に反映し、
+  // 遅延を最小化する。ただしscrollLeftへの書き込みは(同期ではなく数フレーム遅れて)その要素
+  // 自身のscrollイベントを誘発するため、無限に反応し合うのを防ぐガードは維持する。
   // ---------------------------------------------------------------
   function setupScrollSync() {
     var scrollEls = ['normal-scroll', 'large-scroll', 'staff-scroll'].map(function (id) {
       return document.getElementById(id);
     });
-    var ticking = false;
     var programmatic = false; // 他の要素へ書き込んだ直後、その反動で発火するscrollを無視するためのガード
-    var sourceEl = null;
 
-    // scrollLeftへの書き込みで発生するscrollイベントは同期ではなく数フレーム遅れて発火することがあるため、
-    // ガードは1フレームだけでなく2フレーム分保持してから解除する。1フレームだけだと、実際にイベントが
-    // 発火する頃にはガードが外れてしまい、3つの表が互いに反応し合って余計な同期が連鎖し、
-    // スワイプ中に「ひっかかり」を感じる原因になっていた。
+    // 書き込みで誘発されるscrollイベントは数フレーム遅れて発火することがあるため、
+    // ガードは2フレーム分保持してから解除する(1フレームだけだと間に合わず連鎖してしまう)
     function releaseGuardSoon() {
       requestAnimationFrame(function () {
         requestAnimationFrame(function () { programmatic = false; });
@@ -784,21 +781,25 @@
     scrollEls.forEach(function (el) {
       el.addEventListener('scroll', function () {
         if (programmatic) return;
-        sourceEl = el;
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(function () {
-          programmatic = true;
-          scrollEls.forEach(function (other) {
-            if (other !== sourceEl) other.scrollLeft = sourceEl.scrollLeft;
-          });
-          releaseGuardSoon();
-          ticking = false;
+        programmatic = true;
+        var x = el.scrollLeft;
+        scrollEls.forEach(function (other) {
+          if (other !== el) other.scrollLeft = x;
         });
+        releaseGuardSoon();
       }, { passive: true });
     });
   }
   setupScrollSync();
+
+  // ステータスバーの時刻(9:41)は本来モックアップの慣習表示だが、動作プロトタイプなので実際の現在時刻を出す
+  function updateClock() {
+    var now = new Date();
+    var h = now.getHours(), m = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('clock').textContent = h + ':' + m;
+  }
+  updateClock();
+  setInterval(updateClock, 15000);
 
 })();
 </script>
