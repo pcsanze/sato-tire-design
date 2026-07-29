@@ -103,6 +103,19 @@
   .staff-chip.unavailable { opacity: .55; }
   .staff-chip .warn { font-size: .62rem; color: var(--busy); font-weight: 700; margin-left: 2px; }
 
+  .summary-bar { display: flex; gap: 8px; }
+  .summary-tile { flex: 1; text-align: center; padding: 8px 4px; border-radius: 10px; background: var(--surface-alt); border: 1px solid var(--line); }
+  .summary-tile .num { font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .summary-tile.busy .num { color: var(--busy); }
+  .summary-tile.pending .num { color: var(--pending); }
+  .summary-tile.available .num { color: var(--available); }
+  .summary-tile .lbl { font-size: .62rem; color: var(--ink-soft); margin-top: 2px; }
+
+  #btn-toggle-mine.active { background: var(--amber); border-color: var(--amber); color: #2A1200; font-weight: 700; }
+  #lanes-wrap.filter-mine .slot.busy:not(.mine),
+  #lanes-wrap.filter-mine .slot.pending:not(.mine) { opacity: .25; }
+  #lanes-wrap.filter-mine .slot.mine { outline: 2px solid var(--amber); outline-offset: -1px; }
+
   .job-card { display: flex; gap: 10px; align-items: center; padding: 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-alt); cursor: pointer; }
   .job-card .icon-wrap { width: 40px; height: 40px; border-radius: 10px; background: var(--amber-soft); color: var(--amber); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.05rem; }
   .job-main { flex: 1; min-width: 0; }
@@ -168,6 +181,10 @@
             <h2 style="font-size:1rem; text-align:center;">スタッフログイン</h2>
             <div><span class="field-label">メールアドレス</span><input class="field" id="l-email" placeholder="staff@sato-tire.com"></div>
             <div><span class="field-label">パスワード</span><input class="field" type="password" id="l-pass" placeholder="••••••••"></div>
+            <div>
+              <span class="field-label">ログインするスタッフ</span>
+              <div class="staff-pick" id="login-staff-pick"></div>
+            </div>
             <div class="errmsg" id="login-err" style="font-size:.74rem; color: var(--busy); min-height:1.2em;"></div>
             <button class="btn btn-primary btn-block" id="btn-login">ログイン</button>
             <div style="font-size:.68rem; color:var(--ink-soft); text-align:center;">デモ用：メール・パスワードは任意の文字列でログインできます</div>
@@ -179,7 +196,7 @@
       <div id="shell" hidden style="display:flex; flex-direction:column; gap:12px;">
         <div class="app-top">
           <span class="mark">Sato Tire Staff</span>
-          <span class="user" id="whoami">田中<button id="btn-logout">ログアウト</button></span>
+          <span class="user"><span id="whoami-name">田中</span><button id="btn-logout">ログアウト</button></span>
         </div>
         <div class="staffnav">
           <button class="active" data-nav="page-schedule">予約状況</button>
@@ -190,10 +207,14 @@
         <section id="page-schedule" class="page">
           <div class="date-nav"><button id="btn-prev-day">◀</button><span>2026年8月12日(水)</span><button id="btn-next-day">▶</button></div>
 
+          <div id="summary-wrap"></div>
+
           <div class="segtabs">
             <button class="segtab active" data-lanetype="normal">普通車(4レーン)</button>
             <button class="segtab" data-lanetype="large">大型車(3レーン)</button>
           </div>
+
+          <button class="btn btn-ghost btn-sm" id="btn-toggle-mine" style="align-self:flex-start;">☐ 自分の担当のみ表示</button>
 
           <div id="ruler-wrap"></div>
           <div id="lanes-wrap"></div>
@@ -322,10 +343,27 @@
   var jobStatusLabel = { waiting: '未着手', progress: '作業中', done: '完了' };
 
   var currentLaneType = 'normal';
+  var loggedInStaffId = 'tanaka';
+  var filterMine = false;
 
   // ---------------------------------------------------------------
-  // ログイン
+  // ログイン(誰としてログインするか選ぶ→ヘッダーの名前・フィルタに反映)
   // ---------------------------------------------------------------
+  function renderLoginStaffPick() {
+    var wrap = document.getElementById('login-staff-pick');
+    wrap.innerHTML = STAFF.map(function (s) {
+      var sel = s.id === loggedInStaffId;
+      return '<div class="staff-chip' + (sel ? ' selected' : '') + '" data-staffid="' + s.id + '"><span class="av">' + s.initial + '</span>' + s.name + '</div>';
+    }).join('');
+    wrap.querySelectorAll('.staff-chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        loggedInStaffId = chip.getAttribute('data-staffid');
+        renderLoginStaffPick();
+      });
+    });
+  }
+  renderLoginStaffPick();
+
   document.getElementById('btn-login').addEventListener('click', function () {
     var email = document.getElementById('l-email').value.trim();
     var pass = document.getElementById('l-pass').value.trim();
@@ -334,6 +372,7 @@
     err.textContent = '';
     document.getElementById('page-login').hidden = true;
     document.getElementById('shell').hidden = false;
+    document.getElementById('whoami-name').textContent = staffById(loggedInStaffId).name;
     renderSchedule();
   });
 
@@ -342,6 +381,13 @@
     document.getElementById('page-login').hidden = false;
     document.getElementById('l-email').value = '';
     document.getElementById('l-pass').value = '';
+  });
+
+  document.getElementById('btn-toggle-mine').addEventListener('click', function () {
+    filterMine = !filterMine;
+    this.textContent = (filterMine ? '☑' : '☐') + ' 自分の担当のみ表示';
+    this.classList.toggle('active', filterMine);
+    renderSchedule();
   });
 
   // ---------------------------------------------------------------
@@ -395,20 +441,31 @@
     rulerWrap.innerHTML = rulerHtml;
 
     var lanesWrap = document.getElementById('lanes-wrap');
+    lanesWrap.classList.toggle('filter-mine', filterMine);
     var html = '';
+    var counts = { confirmed: 0, pending: 0, available: 0 };
+    var countedResIds = {};
     for (var lane = 1; lane <= cfg.count; lane++) {
       html += '<div class="lane-block"><div class="lane-head"><span class="lane-name">レーン' + lane + '</span></div><div class="lane-strip" data-lane="' + lane + '">';
       for (var i = 0; i < cfg.labels.length; i++) {
         var r = reservationAt(currentLaneType, lane, i);
         if (!r) {
           html += '<div class="slot"></div>';
+          counts.available++;
         } else {
           var cls = r.status === 'cancelled' ? 'cancelled' : (r.status === 'pending' ? 'pending' : 'busy');
           var st = staffById(r.staff);
-          html += '<div class="slot ' + cls + ' slot-clickable" data-resid="' + r.id + '">' +
+          var mine = r.staff === loggedInStaffId ? ' mine' : '';
+          html += '<div class="slot ' + cls + mine + ' slot-clickable" data-resid="' + r.id + '" data-staffid="' + (r.staff || '') + '">' +
             '<span class="staff-dot">' + (st ? st.initial : '?') + '</span>' +
             '<span class="who">' + r.customer.replace(' 様', '') + '</span>' +
             '</div>';
+          // 予約は複数コマにまたがるので、件数は予約IDごとに1回だけ数える(コマ数と混同しないため)
+          if (!countedResIds[r.id]) {
+            countedResIds[r.id] = true;
+            if (r.status === 'confirmed') counts.confirmed++;
+            else if (r.status === 'pending') counts.pending++;
+          }
         }
       }
       html += '</div></div>';
@@ -418,6 +475,13 @@
     lanesWrap.querySelectorAll('.slot-clickable').forEach(function (el) {
       el.addEventListener('click', function () { openResDetail(el.getAttribute('data-resid')); });
     });
+
+    document.getElementById('summary-wrap').innerHTML =
+      '<div class="summary-bar">' +
+      '<div class="summary-tile busy"><div class="num">' + counts.confirmed + '</div><div class="lbl">確定</div></div>' +
+      '<div class="summary-tile pending"><div class="num">' + counts.pending + '</div><div class="lbl">仮予約</div></div>' +
+      '<div class="summary-tile available"><div class="num">' + counts.available + '</div><div class="lbl">空き枠</div></div>' +
+      '</div>';
 
     renderStaffStatus();
   }
