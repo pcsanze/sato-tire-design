@@ -768,16 +768,31 @@
       return document.getElementById(id);
     });
     var ticking = false;
+    var programmatic = false; // 他の要素へ書き込んだ直後、その反動で発火するscrollを無視するためのガード
     var sourceEl = null;
+
+    // scrollLeftへの書き込みで発生するscrollイベントは同期ではなく数フレーム遅れて発火することがあるため、
+    // ガードは1フレームだけでなく2フレーム分保持してから解除する。1フレームだけだと、実際にイベントが
+    // 発火する頃にはガードが外れてしまい、3つの表が互いに反応し合って余計な同期が連鎖し、
+    // スワイプ中に「ひっかかり」を感じる原因になっていた。
+    function releaseGuardSoon() {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { programmatic = false; });
+      });
+    }
+
     scrollEls.forEach(function (el) {
       el.addEventListener('scroll', function () {
+        if (programmatic) return;
         sourceEl = el;
         if (ticking) return;
         ticking = true;
         requestAnimationFrame(function () {
+          programmatic = true;
           scrollEls.forEach(function (other) {
             if (other !== sourceEl) other.scrollLeft = sourceEl.scrollLeft;
           });
+          releaseGuardSoon();
           ticking = false;
         });
       }, { passive: true });
