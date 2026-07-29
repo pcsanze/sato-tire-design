@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>佐藤タイヤ商会 予約システム — デザイン案(フェーズ1・スタッフ向けスマホ管理画面)</title>
+<style>
+  :root {
+    --paper: #F5F2EC;
+    --surface: #FFFFFF;
+    --surface-alt: #EFEAE0;
+    --ink: #26201A;
+    --ink-soft: #6B6155;
+    --line: rgba(38,32,26,0.14);
+    --amber: #C9631A;
+    --amber-soft: #F7E3D0;
+    --charcoal: #2B2B2B;
+    --available: #2E9B5C;
+    --available-soft: #DEF0E4;
+    --busy: #C9631A;
+    --busy-soft: #F7E3D0;
+    --pending: #C68A1F;
+    --pending-soft: #F6E7C9;
+    --shadow: 0 20px 44px -24px rgba(20,15,10,.45);
+    --font-display: 'Century Gothic','Futura','Avenir Next',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-body: 'Hiragino Sans','Yu Gothic Medium','Yu Gothic','Noto Sans JP',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #1A1611; --surface: #221D17; --surface-alt: #2B241C;
+      --ink: #F0E9DE; --ink-soft: #B0A493; --line: rgba(240,233,222,0.14);
+      --amber: #E68A3E; --amber-soft: #3A2716;
+      --available: #59C889; --available-soft: #123B2A;
+      --busy: #E68A3E; --busy-soft: #3A2716;
+      --pending: #E3B255; --pending-soft: #3B2E13;
+      --shadow: 0 24px 48px -20px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #1A1611; --surface: #221D17; --surface-alt: #2B241C;
+    --ink: #F0E9DE; --ink-soft: #B0A493; --line: rgba(240,233,222,0.14);
+    --amber: #E68A3E; --amber-soft: #3A2716;
+    --available: #59C889; --available-soft: #123B2A;
+    --busy: #E68A3E; --busy-soft: #3A2716;
+    --pending: #E3B255; --pending-soft: #3B2E13;
+    --shadow: 0 24px 48px -20px rgba(0,0,0,.6);
+  }
+  :root[data-theme="light"] {
+    --paper: #F5F2EC; --surface: #FFFFFF; --surface-alt: #EFEAE0;
+    --ink: #26201A; --ink-soft: #6B6155; --line: rgba(38,32,26,0.14);
+    --amber: #C9631A; --amber-soft: #F7E3D0;
+    --available: #2E9B5C; --available-soft: #DEF0E4;
+    --busy: #C9631A; --busy-soft: #F7E3D0;
+    --pending: #C68A1F; --pending-soft: #F6E7C9;
+    --shadow: 0 20px 44px -24px rgba(20,15,10,.45);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; overflow-x: hidden;
+    background: var(--paper); color: var(--ink);
+    font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+
+  .page-head {
+    max-width: 1100px; margin: 0 auto; padding: 40px 20px 20px;
+  }
+  .page-head .eyebrow {
+    font-family: var(--font-display); font-size: .72rem; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--amber); font-weight: 700;
+  }
+  .page-head h1 { font-size: 1.5rem; margin-top: 8px; }
+  .page-head p { font-size: .86rem; color: var(--ink-soft); margin-top: 10px; line-height: 1.7; max-width: 640px; }
+
+  .gallery {
+    max-width: 1100px; margin: 0 auto; padding: 20px 20px 80px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px;
+  }
+  .screen-block { display: flex; flex-direction: column; gap: 14px; }
+  .screen-block .caption { font-size: .8rem; color: var(--ink-soft); line-height: 1.6; }
+  .screen-block .caption b { color: var(--ink); }
+
+  .phone-frame {
+    width: 100%; max-width: 340px; margin: 0 auto;
+    border-radius: 28px; background: var(--surface);
+    box-shadow: var(--shadow), 0 0 0 1px var(--line); overflow: hidden;
+  }
+  .phone-status { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px 2px; font-size: .68rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .phone-status .dots { display:flex; gap:3px; }
+  .phone-status .dots span { width:4px; height:4px; border-radius:50%; background: var(--ink-soft); display:block; }
+  .phone-body { padding: 10px 16px 24px; display: flex; flex-direction: column; gap: 12px; }
+
+  .app-top { display: flex; align-items: center; justify-content: space-between; }
+  .app-top .mark { font-family: var(--font-display); font-size: .62rem; letter-spacing: .1em; font-weight: 700; color: var(--amber); text-transform: uppercase; }
+  .app-top .user { font-size: .68rem; color: var(--ink-soft); }
+
+  .date-nav { display:flex; align-items:center; justify-content:space-between; font-size:.82rem; font-weight:700; }
+  .date-nav button { background:none; border:none; color: var(--ink-soft); font-size: .95rem; padding: 4px 8px; }
+
+  .segtabs { display: inline-flex; gap: 3px; padding: 3px; background: var(--surface-alt); border-radius: 999px; border: 1px solid var(--line); width: 100%; }
+  .segtab { flex: 1; border: none; background: transparent; color: var(--ink-soft); font-size: .74rem; font-weight: 700; padding: 7px 10px; border-radius: 999px; text-align: center; }
+  .segtab.active { background: var(--amber); color: #2A1200; }
+
+  .lane-block { display: flex; flex-direction: column; gap: 6px; }
+  .lane-head { display:flex; align-items:center; justify-content:space-between; font-size:.72rem; }
+  .lane-head .lane-name { font-weight: 700; }
+  .lane-head .lane-note { color: var(--ink-soft); }
+  .lane-strip { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 2px; }
+  .slot { flex-shrink: 0; min-width: 34px; height: 40px; border-radius: 6px; background: var(--surface-alt); border: 1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size: .6rem; color: var(--ink-soft); position: relative; }
+  .slot.busy { background: var(--busy-soft); border-color: var(--busy); color: var(--busy); font-weight: 700; flex-direction: column; gap: 1px; }
+  .slot.pending { background: var(--pending-soft); border: 1px dashed var(--pending); color: var(--pending); font-weight: 700; flex-direction: column; gap: 1px; }
+  .slot .who { font-size: .56rem; }
+  .slot .staff-dot { position:absolute; top:2px; right:2px; width:10px; height:10px; border-radius:50%; background: var(--charcoal); color:#fff; font-size:.42rem; display:flex; align-items:center; justify-content:center; font-weight:700; }
+  .time-ruler { display:flex; gap:3px; }
+  .time-ruler span { flex-shrink:0; min-width: 34px; font-size: .56rem; color: var(--ink-soft); text-align:center; }
+
+  .legend { display:flex; gap:12px; font-size: .68rem; color: var(--ink-soft); flex-wrap: wrap; margin-top: 4px; }
+  .legend .item { display:flex; align-items:center; gap:5px; }
+  .legend .swatch { width:11px; height:11px; border-radius:3px; }
+
+  .mini-label { font-family: var(--font-display); font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin-top: 2px; }
+
+  .job-card { display: flex; gap: 10px; align-items: center; padding: 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-alt); }
+  .job-card .icon-wrap { width: 42px; height: 42px; border-radius: 10px; background: var(--amber-soft); color: var(--amber); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.1rem; }
+  .job-main { flex: 1; min-width: 0; }
+  .job-main .name { font-size: .82rem; font-weight: 700; }
+  .job-main .spec { font-size: .68rem; color: var(--ink-soft); margin-top: 2px; }
+  .job-badge { font-size: .64rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+  .job-badge.wait { background: var(--pending-soft); color: var(--pending); }
+  .job-badge.progress { background: var(--busy-soft); color: var(--busy); }
+  .job-badge.done { background: var(--available-soft); color: var(--available); }
+
+  .field-label { font-size: .7rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; display: block; }
+  .field { width: 100%; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-alt); color: var(--ink); font-size: .84rem; }
+  .staff-pick { display:flex; gap: 8px; flex-wrap: wrap; }
+  .staff-chip { display:flex; align-items:center; gap:6px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-alt); font-size: .76rem; }
+  .staff-chip.selected { background: var(--amber); border-color: var(--amber); color: #2A1200; font-weight: 700; }
+  .staff-chip .av { width: 18px; height: 18px; border-radius: 50%; background: var(--charcoal); color: #fff; font-size: .58rem; display:flex; align-items:center; justify-content:center; font-weight:700; }
+
+  .detail-card { border-radius: 12px; border: 1px solid var(--line); padding: 14px; display:flex; flex-direction:column; gap:12px; background: var(--surface-alt); }
+  .kv-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .kv-grid .k { font-size:.64rem; color: var(--ink-soft); }
+  .kv-grid .v { font-size:.8rem; font-weight:600; margin-top:2px; }
+
+  .btn { border-radius: 10px; padding: 11px 16px; font-size: .82rem; font-weight: 700; border: none; text-align: center; }
+  .btn-primary { background: var(--amber); color: #2A1200; }
+  .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .btn-block { width: 100%; }
+
+  footer.note {
+    max-width: 1100px; margin: 20px auto 60px; padding-top: 20px; border-top: 1px solid var(--line);
+    font-size: .78rem; color: var(--ink-soft); line-height: 1.7; text-align: center; padding-left: 20px; padding-right: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <div class="eyebrow">佐藤タイヤ商会 予約システム — デザイン案</div>
+  <h1>フェーズ1：スタッフ向けスマホ管理画面</h1>
+  <p>お客様向けオンライン予約(フェーズ2)より先に、まず「予約状況をスマホで確認できる」ことを最優先に設計。普通車4レーン(1コマ15分)・大型車3レーン(1コマ30分)のレーン表示に加え、板金塗装・コーティング等の長時間サービスは別枠の「預かり案件」として扱う。担当スタッフの割り当ても予約データに紐付ける。</p>
+</div>
+
+<div class="gallery">
+
+  <div class="screen-block">
+    <div class="phone-frame">
+      <div class="phone-status"><span>9:41</span><span class="dots"><span></span><span></span><span></span></span></div>
+      <div class="phone-body">
+        <div class="app-top"><span class="mark">Sato Tire Staff</span></div>
+        <h2 style="font-size:1rem; margin-top: 20px;">スタッフログイン</h2>
+        <div>
+          <span class="field-label">メールアドレス</span>
+          <input class="field" placeholder="staff@sato-tire.com">
+        </div>
+        <div>
+          <span class="field-label">パスワード</span>
+          <input class="field" type="password" placeholder="••••••••">
+        </div>
+        <button class="btn btn-primary btn-block" style="margin-top:8px;">ログイン</button>
+      </div>
+    </div>
+    <div class="caption">01 ログイン。<b>スマホでの利用が主</b>という前提のため、入力欄・ボタンを指で押しやすい大きさで最初から設計する(PCのおまけとしてのレスポンシブ対応ではない)。</div>
+  </div>
+
+  <div class="screen-block">
+    <div class="phone-frame">
+      <div class="phone-status"><span>9:41</span><span class="dots"><span></span><span></span><span></span></span></div>
+      <div class="phone-body">
+        <div class="app-top"><span class="mark">Sato Tire Staff</span><span class="user">田中</span></div>
+        <div class="date-nav"><button>◀</button><span>2026年8月12日(水)</span><button>▶</button></div>
+
+        <div class="segtabs">
+          <button class="segtab active">普通車(4レーン)</button>
+          <button class="segtab">大型車(3レーン)</button>
+        </div>
+
+        <div class="time-ruler" style="padding-left:56px;">
+          <span>9:00</span><span>9:30</span><span>10:00</span><span>10:30</span><span>11:00</span><span>11:30</span>
+        </div>
+
+        <div class="lane-block">
+          <div class="lane-head"><span class="lane-name">レーン1</span></div>
+          <div class="lane-strip">
+            <div class="slot busy"><span class="staff-dot">田</span><span class="who">佐藤様</span></div>
+            <div class="slot busy"><span class="staff-dot">田</span><span class="who">佐藤様</span></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+            <div class="slot pending"><span class="staff-dot">?</span><span class="who">仮</span></div>
+            <div class="slot"></div>
+          </div>
+        </div>
+        <div class="lane-block">
+          <div class="lane-head"><span class="lane-name">レーン2</span></div>
+          <div class="lane-strip">
+            <div class="slot"></div>
+            <div class="slot busy"><span class="staff-dot">鈴</span><span class="who">山田様</span></div>
+            <div class="slot busy"><span class="staff-dot">鈴</span><span class="who">山田様</span></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+          </div>
+        </div>
+        <div class="lane-block">
+          <div class="lane-head"><span class="lane-name">レーン3</span></div>
+          <div class="lane-strip">
+            <div class="slot"></div><div class="slot"></div><div class="slot"></div>
+            <div class="slot busy"><span class="staff-dot">高</span><span class="who">高橋様</span></div>
+            <div class="slot busy"><span class="staff-dot">高</span><span class="who">高橋様</span></div>
+            <div class="slot"></div>
+          </div>
+        </div>
+        <div class="lane-block">
+          <div class="lane-head"><span class="lane-name">レーン4</span></div>
+          <div class="lane-strip">
+            <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="item"><span class="swatch" style="background:var(--busy-soft); border:1px solid var(--busy);"></span>確定</div>
+          <div class="item"><span class="swatch" style="background:var(--pending-soft); border:1px dashed var(--pending);"></span>仮予約</div>
+          <div class="item"><span class="swatch" style="background:var(--surface-alt); border:1px solid var(--line);"></span>空き</div>
+          <div class="item"><span class="swatch" style="background:var(--charcoal); border-radius:50%;"></span>担当者(頭文字)</div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">02 今日の予約状況(核となる画面)。<b>普通車/大型車をタブで切り替え</b>、レーンごとに横スクロールのタイムラインで空き・確定・仮予約が一目でわかる。各枠の右上の丸に<b>担当スタッフの頭文字</b>を表示。枠をタップすると予約詳細へ。</div>
+  </div>
+
+  <div class="screen-block">
+    <div class="phone-frame">
+      <div class="phone-status"><span>9:41</span><span class="dots"><span></span><span></span><span></span></span></div>
+      <div class="phone-body">
+        <div class="app-top"><span class="mark">Sato Tire Staff</span><span class="user">田中</span></div>
+        <h2 style="font-size:.95rem;">予約詳細</h2>
+        <div class="detail-card">
+          <div class="kv-grid">
+            <div><div class="k">お客様</div><div class="v">佐藤 様</div></div>
+            <div><div class="k">サービス</div><div class="v">タイヤ交換(普通車)</div></div>
+            <div><div class="k">時間</div><div class="v">9:00〜9:30・レーン1</div></div>
+            <div><div class="k">車種</div><div class="v">プリウス</div></div>
+          </div>
+        </div>
+        <div>
+          <span class="field-label">担当スタッフ</span>
+          <div class="staff-pick">
+            <div class="staff-chip selected"><span class="av">田</span>田中</div>
+            <div class="staff-chip"><span class="av">鈴</span>鈴木</div>
+            <div class="staff-chip"><span class="av">高</span>高橋</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block">確定にする</button>
+        <button class="btn btn-ghost btn-block">キャンセル</button>
+      </div>
+    </div>
+    <div class="caption">03 予約詳細＋<b>担当者アサイン</b>。誰が対応するかをチップで選ぶだけの簡単操作。板金塗装等スキル差の出るサービスでは、対応可能なスタッフだけ選択肢に出す想定(要確認)。</div>
+  </div>
+
+  <div class="screen-block">
+    <div class="phone-frame">
+      <div class="phone-status"><span>9:41</span><span class="dots"><span></span><span></span><span></span></span></div>
+      <div class="phone-body">
+        <div class="app-top"><span class="mark">Sato Tire Staff</span><span class="user">田中</span></div>
+        <h2 style="font-size:.95rem;">預かり案件(板金・コーティング等)</h2>
+        <div class="mini-label">対応中</div>
+        <div class="job-card">
+          <div class="icon-wrap">🔧</div>
+          <div class="job-main"><div class="name">鈑金塗装・鈴木様</div><div class="spec">8/11入庫 → 8/14予定・担当:高橋</div></div>
+          <span class="job-badge progress">作業中</span>
+        </div>
+        <div class="job-card">
+          <div class="icon-wrap">✨</div>
+          <div class="job-main"><div class="name">コーティング・伊藤様</div><div class="spec">8/12入庫 → 8/12予定・担当:鈴木</div></div>
+          <span class="job-badge progress">作業中</span>
+        </div>
+        <div class="mini-label">受付待ち</div>
+        <div class="job-card">
+          <div class="icon-wrap">🎞️</div>
+          <div class="job-main"><div class="name">カーフィルム・渡辺様</div><div class="spec">8/13希望・担当:未定</div></div>
+          <span class="job-badge wait">未着手</span>
+        </div>
+        <button class="btn btn-ghost btn-block">＋ 預かり案件を追加</button>
+      </div>
+    </div>
+    <div class="caption">04 レーン制に乗らない<b>長時間サービス専用のリスト画面</b>。板金塗装・コーティング・カーフィルム等は日〜数日単位のため、レーンの15分/30分刻みとは別に、入庫日→完了予定日のカード一覧で管理する。</div>
+  </div>
+
+</div>
+
+<footer class="note">
+  このページはデザインの叩き台(静的モックアップ)。実際に画面遷移して操作できるプロトタイプは別途<code>proto.html</code>で用意予定。担当者アサインの候補者リスト・預かり案件のステータス区分などは、次回の社長ヒアリングを踏まえて調整する。
+</footer>
+
+</body>
+</html>
