@@ -755,23 +755,30 @@
 
   // ---------------------------------------------------------------
   // 3つの表(普通車・大型車・スタッフ稼働状況)は別々のDOMだが、どれをスワイプしても
-  // 全部同じ横スクロール位置になるよう同期させる。scrollLeftを相互に反映するだけなので、
-  // 無限ループ防止に「今どれかが同期処理中」というフラグを立てる。
+  // 全部同じ横スクロール位置になるよう同期させる。
+  // scrollイベントは指の動きに合わせて非常に高頻度で発火するため、発火のたびに他2つの
+  // scrollLeftを同期的に書き換えると、iOS等の慣性スクロール(スーッと流れる動き)が
+  // カクついてしまう。requestAnimationFrameで「1フレームにつき最大1回」に間引くことで、
+  // メインスレッドの負荷を減らし、ネイティブの滑らかなスクロール感触を壊さないようにする。
   // ---------------------------------------------------------------
   function setupScrollSync() {
     var scrollEls = ['normal-scroll', 'large-scroll', 'staff-scroll'].map(function (id) {
       return document.getElementById(id);
     });
-    var syncing = false;
+    var ticking = false;
+    var sourceEl = null;
     scrollEls.forEach(function (el) {
       el.addEventListener('scroll', function () {
-        if (syncing) return;
-        syncing = true;
-        scrollEls.forEach(function (other) {
-          if (other !== el) other.scrollLeft = el.scrollLeft;
+        sourceEl = el;
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function () {
+          scrollEls.forEach(function (other) {
+            if (other !== sourceEl) other.scrollLeft = sourceEl.scrollLeft;
+          });
+          ticking = false;
         });
-        syncing = false;
-      });
+      }, { passive: true });
     });
   }
   setupScrollSync();
