@@ -85,6 +85,8 @@
   .slot.busy { background: var(--busy-soft); border-color: var(--busy); color: var(--busy); font-weight: 700; flex-direction: column; gap: 1px; }
   .slot.pending { background: var(--pending-soft); border: 1px dashed var(--pending); color: var(--pending); font-weight: 700; flex-direction: column; gap: 1px; }
   .slot.cancelled { background: var(--surface-alt); border: 1px solid var(--line); opacity: .4; text-decoration: line-through; }
+  .slot.job-linked { border-style: double; border-width: 3px; }
+  .slot .job-tag { position:absolute; bottom:1px; left:1px; font-size: .48rem; background: var(--charcoal); color:#fff; border-radius: 3px; padding: 0 2px; line-height: 1.3; }
   .slot .who { font-size: .54rem; line-height: 1.1; }
   .slot .staff-dot { position:absolute; top:2px; right:2px; width:11px; height:11px; border-radius:50%; background: var(--charcoal); color:#fff; font-size:.42rem; display:flex; align-items:center; justify-content:center; font-weight:700; }
   .time-ruler { display:flex; gap:3px; }
@@ -313,7 +315,11 @@
     { id: 'R4', laneType: 'normal', lane: 3, slotStart: 10, slotCount: 2, customer: '高橋 様', car: 'ノート', service: 'タイヤ交換', staff: 'takahashi', status: 'confirmed' },
     { id: 'R5', laneType: 'normal', lane: 2, slotStart: 12, slotCount: 1, customer: '中村 様', car: 'フィット', service: 'タイヤ・ホイール取付', staff: null, status: 'pending' },
     { id: 'R6', laneType: 'large', lane: 1, slotStart: 1, slotCount: 1, customer: '庄内運送 様', car: '2tトラック', service: 'タイヤ交換(大型)', staff: 'tanaka', status: 'confirmed' },
-    { id: 'R7', laneType: 'large', lane: 2, slotStart: 4, slotCount: 1, customer: '出羽運輸 様', car: '4tトラック', service: 'タイヤ点検', staff: null, status: 'pending' }
+    { id: 'R7', laneType: 'large', lane: 2, slotStart: 4, slotCount: 1, customer: '出羽運輸 様', car: '4tトラック', service: 'タイヤ点検', staff: null, status: 'pending' },
+    // 預かり案件(下記jobs)も、入庫・お渡しの受付作業はレーンの時間を使う実務のため、
+    // その日にレーン枠を持つ案件は通常の予約と同じデータ構造でレーンに反映する(jobIdで案件と相互リンク)
+    { id: 'R8', laneType: 'normal', lane: 4, slotStart: 0, slotCount: 1, customer: '伊藤 様', car: 'CX-5', service: 'コーティング(入庫受付)', staff: 'suzuki', status: 'confirmed', kind: 'intake', jobId: 'J2' },
+    { id: 'R9', laneType: 'normal', lane: 4, slotStart: 28, slotCount: 1, customer: '伊藤 様', car: 'CX-5', service: 'コーティング(お渡し)', staff: 'suzuki', status: 'confirmed', kind: 'pickup', jobId: 'J2' }
   ];
 
   // 預かり案件(長時間・預かり制サービス)
@@ -456,9 +462,12 @@
           var cls = r.status === 'cancelled' ? 'cancelled' : (r.status === 'pending' ? 'pending' : 'busy');
           var st = staffById(r.staff);
           var mine = r.staff === loggedInStaffId ? ' mine' : '';
-          html += '<div class="slot ' + cls + mine + ' slot-clickable" data-resid="' + r.id + '" data-staffid="' + (r.staff || '') + '">' +
+          var jobLinked = r.jobId ? ' job-linked' : '';
+          var jobTag = r.kind === 'intake' ? '<span class="job-tag">入庫</span>' : r.kind === 'pickup' ? '<span class="job-tag">渡</span>' : '';
+          html += '<div class="slot ' + cls + mine + jobLinked + ' slot-clickable" data-resid="' + r.id + '" data-staffid="' + (r.staff || '') + '">' +
             '<span class="staff-dot">' + (st ? st.initial : '?') + '</span>' +
             '<span class="who">' + r.customer.replace(' 様', '') + '</span>' +
+            jobTag +
             '</div>';
           // 予約は複数コマにまたがるので、件数は予約IDごとに1回だけ数える(コマ数と混同しないため)
           if (!countedResIds[r.id]) {
@@ -536,6 +545,7 @@
         '<div><div class="k">時間</div><div class="v">' + startLabel + '〜' + endLabel + '</div></div>' +
         '<div><div class="k">レーン</div><div class="v">' + (r.laneType === 'normal' ? '普通車' : '大型車') + ' レーン' + r.lane + '</div></div>' +
         '</div></div>' +
+        (r.jobId ? '<button class="btn btn-ghost btn-sm" id="btn-goto-job" style="align-self:flex-start;">🔗 関連する預かり案件を見る(' + r.jobId + ')</button>' : '') +
         '<div><span class="field-label">担当スタッフ</span><div class="staff-pick" id="staff-pick">' + chips + '</div></div>' +
         '<div class="detail-actions" style="margin-top:12px;">' +
         '<button class="btn btn-primary" id="btn-confirm-res"' + (r.status === 'confirmed' ? ' disabled' : '') + '>確定にする</button>' +
@@ -555,6 +565,10 @@
       document.getElementById('btn-cancel-res').addEventListener('click', function () {
         r.status = 'cancelled'; render(); showToast(r.id + ' をキャンセルにしました');
       });
+      var gotoJobBtn = document.getElementById('btn-goto-job');
+      if (gotoJobBtn) {
+        gotoJobBtn.addEventListener('click', function () { openJobDetail(r.jobId); });
+      }
     }
     render();
     showPage('page-resdetail');
@@ -570,6 +584,23 @@
   // ---------------------------------------------------------------
   var jobIcon = { '鈑金塗装': '🔧', 'Dr ハイブリッドコーティング': '✨', 'カーフィルム施工': '🎞️', 'ヘッドライト修理': '💡' };
   var jobBadgeClass = { waiting: 'wait', progress: 'progress', done: 'done' };
+  var kindLabel = { intake: '入庫受付', pickup: 'お渡し' };
+
+  // この案件の入庫・お渡し作業が、本日(8/12)のレーンに枠を持っているかを逆引きする。
+  // 預かり案件は日をまたぐため、このデモでは表示中の1日(8/12)分のレーン枠に一致するもののみ表示する。
+  function renderLinkedResBlock(j) {
+    var linked = reservations.filter(function (r) { return r.jobId === j.id; });
+    if (linked.length === 0) {
+      return '<div style="font-size:.72rem; color:var(--ink-soft);">本日(8/12)のレーン枠の予定はありません(入庫・お渡しが別日のため)</div>';
+    }
+    var rows = linked.map(function (r) {
+      var cfg = LANE_CONFIG[r.laneType];
+      var t = cfg.labels[r.slotStart];
+      var laneLabel = (r.laneType === 'normal' ? '普通車' : '大型車') + ' レーン' + r.lane;
+      return '<button class="btn btn-ghost btn-sm btn-goto-res" data-resid="' + r.id + '" style="justify-content:flex-start;">🔗 ' + (kindLabel[r.kind] || r.service) + '：' + t + '〜・' + laneLabel + '</button>';
+    }).join('');
+    return '<div style="display:flex; flex-direction:column; gap:6px;"><span class="field-label">本日のレーン枠</span>' + rows + '</div>';
+  }
 
   function renderJobList() {
     var wrap = document.getElementById('joblist-wrap');
@@ -619,6 +650,7 @@
         '<div><div class="k">完了予定</div><div class="v">' + j.due + '</div></div>' +
         '<div class="full" style="grid-column:1/-1;"><div class="k">備考</div><div class="v" style="font-weight:400;">' + (j.notes || 'なし') + '</div></div>' +
         '</div></div>' +
+        renderLinkedResBlock(j) +
         '<div><span class="field-label">担当スタッフ</span><div class="staff-pick">' + chips + '</div></div>' +
         '<div class="detail-actions" style="margin-top:12px;">' +
         '<button class="btn btn-ghost btn-sm" id="btn-job-waiting"' + (j.status === 'waiting' ? ' disabled' : '') + '>未着手に戻す</button>' +
@@ -636,6 +668,9 @@
       document.getElementById('btn-job-waiting').addEventListener('click', function () { j.status = 'waiting'; render(); });
       document.getElementById('btn-job-progress').addEventListener('click', function () { j.status = 'progress'; render(); });
       document.getElementById('btn-job-done').addEventListener('click', function () { j.status = 'done'; render(); showToast(j.id + ' を完了にしました'); });
+      body.querySelectorAll('.btn-goto-res').forEach(function (btn) {
+        btn.addEventListener('click', function () { openResDetail(btn.getAttribute('data-resid')); });
+      });
     }
     render();
     showPage('page-jobdetail');
