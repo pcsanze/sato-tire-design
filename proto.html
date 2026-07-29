@@ -114,7 +114,7 @@
   .mini-label { font-family: var(--font-display); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin-top: 4px; }
 
   /* スタッフ稼働状況：レーン表とは別の独立した表(別のsched-grid)。列幅66px・36列は揃えてあるので時間軸は一致する */
-  .slot.staff-avail { background: var(--available-soft); color: var(--available); }
+  .slot.staff-avail { background: var(--surface); }
   .slot.staff-absent { background: repeating-linear-gradient(135deg, var(--busy-soft), var(--busy-soft) 4px, var(--surface) 4px, var(--surface) 8px); color: var(--busy); font-weight: 700; }
   .slot.staff-busy-normal { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
   .slot.staff-busy-large { background: var(--pending-soft); color: var(--pending); font-weight: 700; }
@@ -250,7 +250,7 @@
           <div class="legend">
             <div class="item"><span class="swatch" style="background:var(--busy-soft); border:1px solid var(--busy);"></span>確定</div>
             <div class="item"><span class="swatch" style="background:var(--pending-soft); border:1px dashed var(--pending);"></span>仮予約</div>
-            <div class="item"><span class="swatch" style="background:var(--surface-alt); border:1px solid var(--line);"></span>空き</div>
+            <div class="item"><span class="swatch" style="background:var(--surface); border:1px solid var(--line);"></span>空き(レーン)・在席(スタッフ)</div>
             <div class="item"><span class="swatch" style="background:repeating-linear-gradient(135deg, var(--busy-soft), var(--busy-soft) 3px, var(--surface) 3px, var(--surface) 6px);"></span>スタッフ不在</div>
             <div class="item"><span class="swatch" style="background:var(--busy-soft); border:1px solid var(--busy);"></span>普通車対応中</div>
             <div class="item"><span class="swatch" style="background:var(--pending-soft); border:1px solid var(--pending);"></span>大型車対応中</div>
