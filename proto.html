@@ -565,7 +565,7 @@
         var busyRes = staffReservationAt(s.id, i);
         if (busyRes) {
           var vcls = busyRes.laneType === 'normal' ? 'staff-busy-normal' : 'staff-busy-large';
-          var vlabel = busyRes.laneType === 'normal' ? '普通車' : '大型車';
+          var vlabel = (busyRes.laneType === 'normal' ? '普通車' : '大型車') + busyRes.lane;
           staffRowsHtml += '<div class="slot ' + vcls + '">' + vlabel + '</div>';
         } else {
           staffRowsHtml += '<div class="slot staff-avail"></div>';
