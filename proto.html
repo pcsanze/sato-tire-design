@@ -96,6 +96,13 @@
 
   .mini-label { font-family: var(--font-display); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin-top: 4px; }
 
+  .staff-status-row { display:flex; align-items:center; gap:8px; margin-bottom: 5px; }
+  .staff-status-row .sname { width: 34px; font-size:.72rem; font-weight:700; flex-shrink:0; }
+  .staff-bar { position:relative; flex:1; height: 24px; border-radius:6px; background: var(--available-soft); overflow:hidden; border: 1px solid var(--line); }
+  .staff-bar .absence { position:absolute; top:0; bottom:0; background: var(--busy-soft); border-left:1px solid var(--busy); border-right:1px solid var(--busy); display:flex; align-items:center; justify-content:center; font-size:.6rem; color:var(--busy); font-weight:700; white-space:nowrap; overflow:hidden; padding: 0 2px; }
+  .staff-chip.unavailable { opacity: .55; }
+  .staff-chip .warn { font-size: .62rem; color: var(--busy); font-weight: 700; margin-left: 2px; }
+
   .job-card { display: flex; gap: 10px; align-items: center; padding: 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-alt); cursor: pointer; }
   .job-card .icon-wrap { width: 40px; height: 40px; border-radius: 10px; background: var(--amber-soft); color: var(--amber); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.05rem; }
   .job-main { flex: 1; min-width: 0; }
@@ -190,6 +197,9 @@
 
           <div id="ruler-wrap"></div>
           <div id="lanes-wrap"></div>
+
+          <div class="mini-label">スタッフ稼働状況</div>
+          <div id="staff-status-wrap"></div>
 
           <div class="legend">
             <div class="item"><span class="swatch" style="background:var(--busy-soft); border:1px solid var(--busy);"></span>確定</div>
@@ -293,6 +303,21 @@
     { id: 'J4', customer: '小林 様', service: 'ヘッドライト修理', car: 'N-BOX', dropoff: '2026/08/10', due: '2026/08/10', staff: 'tanaka', status: 'done', notes: '' }
   ];
 
+  // スタッフの不在(出張・外対応)。時刻は分単位(9:00=540分)で管理
+  var staffAbsences = [
+    { staff: 'suzuki', startMin: 13 * 60, endMin: 15 * 60, reason: '出張' },
+    { staff: 'takahashi', startMin: 9 * 60, endMin: 10 * 60 + 30, reason: '外対応' }
+  ];
+  var DAY_START_MIN = 9 * 60, DAY_END_MIN = 18 * 60, DAY_TOTAL_MIN = DAY_END_MIN - DAY_START_MIN;
+
+  function absencesFor(staffId) {
+    return staffAbsences.filter(function (a) { return a.staff === staffId; });
+  }
+  // 指定した時間帯[startMin,endMin)に不在が重なっているか
+  function isAbsentDuring(staffId, startMin, endMin) {
+    return absencesFor(staffId).some(function (a) { return startMin < a.endMin && endMin > a.startMin; });
+  }
+
   var statusLabel = { confirmed: '確定', pending: '仮予約', cancelled: 'キャンセル' };
   var jobStatusLabel = { waiting: '未着手', progress: '作業中', done: '完了' };
 
@@ -393,6 +418,28 @@
     lanesWrap.querySelectorAll('.slot-clickable').forEach(function (el) {
       el.addEventListener('click', function () { openResDetail(el.getAttribute('data-resid')); });
     });
+
+    renderStaffStatus();
+  }
+
+  function renderStaffStatus() {
+    var wrap = document.getElementById('staff-status-wrap');
+    var html = '';
+    STAFF.forEach(function (s) {
+      html += '<div class="staff-status-row"><span class="sname">' + s.name + '</span><div class="staff-bar">';
+      absencesFor(s.id).forEach(function (a) {
+        var leftPct = (a.startMin - DAY_START_MIN) / DAY_TOTAL_MIN * 100;
+        var widthPct = (a.endMin - a.startMin) / DAY_TOTAL_MIN * 100;
+        html += '<div class="absence" style="left:' + leftPct + '%; width:' + widthPct + '%;" title="' + a.reason + ' ' + minToLabel(a.startMin) + '〜' + minToLabel(a.endMin) + '">' + a.reason + '</div>';
+      });
+      html += '</div></div>';
+    });
+    wrap.innerHTML = html;
+  }
+
+  function minToLabel(m) {
+    var h = Math.floor(m / 60), mm = m % 60;
+    return h + ':' + (mm === 0 ? '00' : mm);
   }
 
   // ---------------------------------------------------------------
@@ -405,12 +452,15 @@
     var startLabel = cfg.labels[r.slotStart];
     var endMinIdx = r.slotStart + r.slotCount;
     var endLabel = endMinIdx < cfg.labels.length ? cfg.labels[endMinIdx] : '18:00';
+    var resStartMin = DAY_START_MIN + r.slotStart * cfg.stepMin;
+    var resEndMin = DAY_START_MIN + endMinIdx * cfg.stepMin;
 
     function render() {
       var body = document.getElementById('resdetail-body');
       var chips = STAFF.map(function (s) {
         var sel = r.staff === s.id;
-        return '<div class="staff-chip' + (sel ? ' selected' : '') + '" data-staffid="' + s.id + '"><span class="av">' + s.initial + '</span>' + s.name + '</div>';
+        var absent = isAbsentDuring(s.id, resStartMin, resEndMin);
+        return '<div class="staff-chip' + (sel ? ' selected' : '') + (absent ? ' unavailable' : '') + '" data-staffid="' + s.id + '"><span class="av">' + s.initial + '</span>' + s.name + (absent ? '<span class="warn">不在</span>' : '') + '</div>';
       }).join('');
       body.innerHTML =
         '<div class="detail-card">' +
