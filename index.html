@@ -106,11 +106,11 @@
   .lane-head .lane-name { font-weight: 700; }
   .lane-head .lane-note { color: var(--ink-soft); }
   .lane-strip { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 2px; }
-  .slot { flex-shrink: 0; min-width: 34px; height: 40px; border-radius: 6px; background: var(--surface-alt); border: 1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size: .6rem; color: var(--ink-soft); position: relative; }
-  .slot.busy { background: var(--busy-soft); border-color: var(--busy); color: var(--busy); font-weight: 700; flex-direction: column; gap: 1px; }
-  .slot.pending { background: var(--pending-soft); border: 1px dashed var(--pending); color: var(--pending); font-weight: 700; flex-direction: column; gap: 1px; }
-  .slot .who { font-size: .56rem; }
-  .slot .staff-dot { position:absolute; top:2px; right:2px; width:10px; height:10px; border-radius:50%; background: var(--charcoal); color:#fff; font-size:.42rem; display:flex; align-items:center; justify-content:center; font-weight:700; }
+  .slot { flex-shrink: 0; min-width: 64px; height: 46px; border-radius: 6px; background: var(--surface-alt); border: 1px solid var(--line); display:flex; flex-direction: column; align-items:center; justify-content:center; font-size: .6rem; color: var(--ink-soft); position: relative; padding: 2px 4px; text-align: center; }
+  .slot.busy { background: var(--busy-soft); border-color: var(--busy); color: var(--busy); font-weight: 700; }
+  .slot.pending { background: var(--pending-soft); border: 1px dashed var(--pending); color: var(--pending); font-weight: 700; }
+  .slot .who { font-size: .58rem; line-height: 1.15; }
+  .slot .staff-dot { font-size: .5rem; font-weight: 700; opacity: .85; margin-top: 1px; }
   .time-ruler { display:flex; gap:3px; }
   .time-ruler span { flex-shrink:0; min-width: 34px; font-size: .56rem; color: var(--ink-soft); text-align:center; }
 
@@ -190,50 +190,39 @@
         <div class="app-top"><span class="mark">Sato Tire Staff</span><span class="user">田中</span></div>
         <div class="date-nav"><button>◀</button><span>2026年8月12日(水)</span><button>▶</button></div>
 
-        <div class="segtabs">
-          <button class="segtab active">普通車(4レーン)</button>
-          <button class="segtab">大型車(3レーン)</button>
-        </div>
-
         <div class="time-ruler" style="padding-left:56px;">
           <span>9:00</span><span>9:30</span><span>10:00</span><span>10:30</span><span>11:00</span><span>11:30</span>
         </div>
 
         <div class="lane-block">
-          <div class="lane-head"><span class="lane-name">レーン1</span></div>
+          <div class="lane-head"><span class="lane-name">普通車1</span></div>
           <div class="lane-strip">
-            <div class="slot busy"><span class="staff-dot">田</span><span class="who">佐藤様</span></div>
-            <div class="slot busy"><span class="staff-dot">田</span><span class="who">佐藤様</span></div>
+            <div class="slot busy"><span class="who">佐藤 直樹 様</span><span class="staff-dot">田中</span></div>
+            <div class="slot busy"><span class="who">佐藤 直樹 様</span><span class="staff-dot">田中</span></div>
             <div class="slot"></div>
             <div class="slot"></div>
-            <div class="slot pending"><span class="staff-dot">?</span><span class="who">仮</span></div>
+            <div class="slot pending"><span class="who">仮予約</span><span class="staff-dot">未定</span></div>
             <div class="slot"></div>
           </div>
         </div>
         <div class="lane-block">
-          <div class="lane-head"><span class="lane-name">レーン2</span></div>
+          <div class="lane-head"><span class="lane-name">普通車2</span></div>
           <div class="lane-strip">
             <div class="slot"></div>
-            <div class="slot busy"><span class="staff-dot">鈴</span><span class="who">山田様</span></div>
-            <div class="slot busy"><span class="staff-dot">鈴</span><span class="who">山田様</span></div>
+            <div class="slot busy"><span class="who">山田 陽子 様</span><span class="staff-dot">鈴木</span></div>
+            <div class="slot busy"><span class="who">山田 陽子 様</span><span class="staff-dot">鈴木</span></div>
             <div class="slot"></div>
             <div class="slot"></div>
             <div class="slot"></div>
           </div>
         </div>
         <div class="lane-block">
-          <div class="lane-head"><span class="lane-name">レーン3</span></div>
+          <div class="lane-head"><span class="lane-name">大型車1</span></div>
           <div class="lane-strip">
             <div class="slot"></div><div class="slot"></div><div class="slot"></div>
-            <div class="slot busy"><span class="staff-dot">高</span><span class="who">高橋様</span></div>
-            <div class="slot busy"><span class="staff-dot">高</span><span class="who">高橋様</span></div>
+            <div class="slot busy"><span class="who">庄内運送(株) 様</span><span class="staff-dot">高橋</span></div>
+            <div class="slot busy"><span class="who">庄内運送(株) 様</span><span class="staff-dot">高橋</span></div>
             <div class="slot"></div>
-          </div>
-        </div>
-        <div class="lane-block">
-          <div class="lane-head"><span class="lane-name">レーン4</span></div>
-          <div class="lane-strip">
-            <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
           </div>
         </div>
 
@@ -241,11 +230,10 @@
           <div class="item"><span class="swatch" style="background:var(--busy-soft); border:1px solid var(--busy);"></span>確定</div>
           <div class="item"><span class="swatch" style="background:var(--pending-soft); border:1px dashed var(--pending);"></span>仮予約</div>
           <div class="item"><span class="swatch" style="background:var(--surface-alt); border:1px solid var(--line);"></span>空き</div>
-          <div class="item"><span class="swatch" style="background:var(--charcoal); border-radius:50%;"></span>担当者(頭文字)</div>
         </div>
       </div>
     </div>
-    <div class="caption">02 今日の予約状況(核となる画面)。<b>普通車/大型車をタブで切り替え</b>、レーンごとに横スクロールのタイムラインで空き・確定・仮予約が一目でわかる。各枠の右上の丸に<b>担当スタッフの頭文字</b>を表示。枠をタップすると予約詳細へ。</div>
+    <div class="caption">02 今日の予約状況(核となる画面・2026-07-28改訂)。<b>普通車/大型車のタブ分けは廃止し、全レーンを1つの横スクロール領域にまとめた</b>——どのレーンをスワイプしても全レーン同時に動く。時間軸は全レーン15分刻みに統一。お客様・担当スタッフとも<b>フルネーム表示</b>(頭文字への省略はしない)。動作する版は<a href="./proto.html" style="color:var(--amber);">proto.html</a>を参照。</div>
   </div>
 
   <div class="screen-block">
