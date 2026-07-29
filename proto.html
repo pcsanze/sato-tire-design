@@ -87,10 +87,13 @@
   .sched-inner { display: flex; flex-direction: column; width: max-content; }
   .ruler-row { display: flex; height: 20px; }
   .ruler-row .rcell { flex-shrink: 0; width: 66px; font-size: .56rem; color: var(--ink-soft); text-align: left; display: flex; align-items: center; justify-content: flex-start; padding-left: 3px; font-variant-numeric: tabular-nums; }
-  .lane-row { display: flex; height: 48px; border-bottom: 1px solid var(--line-strong); }
+  .lane-row { display: flex; height: 48px; }
   .lane-row.group-large { background: var(--paper); }
 
-  .slot { flex-shrink: 0; width: 66px; height: 48px; border-right: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .56rem; color: var(--ink-soft); position: relative; cursor: default; padding: 1px 3px; text-align: center; overflow: hidden; }
+  /* 横線は行(.lane-row)ではなくセル(.slot)自身に持たせる。
+     .lane-rowとその子.slotが両方height:48px固定だと、行側にborder-bottomを足した分
+     (border-box内で content=47pxになる)と子の48px指定が競合し、線が子要素に隠れて見えなくなるため。 */
+  .slot { flex-shrink: 0; width: 66px; height: 48px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line-strong); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .56rem; color: var(--ink-soft); position: relative; cursor: default; padding: 1px 3px; text-align: center; overflow: hidden; }
   .lane-row.group-large .slot { background: var(--paper); }
   .slot.slot-clickable { cursor: pointer; }
   .slot.busy { background: var(--busy-soft); color: var(--busy); font-weight: 700; }
