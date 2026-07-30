@@ -95,6 +95,8 @@
      (border-box内で content=47pxになる)と子の48px指定が競合し、線が子要素に隠れて見えなくなるため。 */
   .slot { flex-shrink: 0; width: 66px; height: 62px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line-strong); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .56rem; color: var(--ink-soft); position: relative; cursor: default; padding: 1px 3px; text-align: center; overflow: hidden; }
   .slot.slot-clickable { cursor: pointer; }
+  .slot.slot-empty { cursor: pointer; }
+  .slot.slot-empty:active { background: var(--surface-alt); }
   .slot.busy { background: var(--busy-soft); color: var(--busy); font-weight: 700; box-shadow: inset 0 0 0 2px var(--busy); }
   .slot.pending { background: var(--pending-soft); border-left: 1px dashed var(--pending); color: var(--pending); font-weight: 700; box-shadow: inset 0 0 0 2px var(--pending); }
   .slot.cancelled { background: var(--surface-alt); opacity: .4; text-decoration: line-through; }
@@ -255,6 +257,12 @@
         <section id="page-resdetail" class="page" hidden>
           <button class="btn btn-ghost btn-sm" id="btn-back-schedule" style="align-self:flex-start;">← 予約状況に戻る</button>
           <div id="resdetail-body"></div>
+        </section>
+
+        <!-- 新規予約入力(空きセルタップ) -->
+        <section id="page-newres" class="page" hidden>
+          <button class="btn btn-ghost btn-sm" id="btn-back-newres" style="align-self:flex-start;">← 予約状況に戻る</button>
+          <div id="newres-body"></div>
         </section>
 
         <!-- 預かり案件一覧 -->
@@ -445,6 +453,25 @@
     return null;
   }
 
+  // slotIndexから次の予約(または営業時間の終わり)にぶつかるまで、そのレーンが何コマ連続で空いているかを数える
+  function freeRunLength(laneType, lane, slotIndex) {
+    var count = 0;
+    for (var i = slotIndex; i < TIME_LABELS.length; i++) {
+      if (reservationAt(laneType, lane, i)) break;
+      count++;
+    }
+    return count;
+  }
+
+  function nextResId() {
+    var maxNum = 0;
+    reservations.forEach(function (r) {
+      var m = /^R(\d+)$/.exec(r.id);
+      if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+    });
+    return 'R' + (maxNum + 1);
+  }
+
   // slotCount(15分単位のコマ数)を「30分」「1時間」「1時間30分」のような表示用文字列にする
   function formatDuration(slotCount) {
     var totalMin = slotCount * STEP_MIN;
@@ -486,7 +513,7 @@
       for (var i = 0; i < TIME_LABELS.length; i++) {
         var r = reservationAt(l.laneType, l.lane, i);
         if (!r) {
-          lanesHtml += '<div class="slot"></div>';
+          lanesHtml += '<div class="slot slot-empty" data-lanetype="' + l.laneType + '" data-lane="' + l.lane + '" data-slotindex="' + i + '"></div>';
         } else if (i !== r.slotStart) {
           // 継続コマ：この予約の最初のコマで結合済みの1セルとして既に描画済みなので、ここでは何も描画しない
         } else {
@@ -512,6 +539,11 @@
 
     inner.querySelectorAll('.slot-clickable').forEach(function (el) {
       el.addEventListener('click', function () { openResDetail(el.getAttribute('data-resid')); });
+    });
+    inner.querySelectorAll('.slot-empty').forEach(function (el) {
+      el.addEventListener('click', function () {
+        openNewResForm(el.getAttribute('data-lanetype'), parseInt(el.getAttribute('data-lane'), 10), parseInt(el.getAttribute('data-slotindex'), 10));
+      });
     });
 
     return counts;
@@ -647,6 +679,71 @@
   document.getElementById('btn-back-schedule').addEventListener('click', function () {
     showPage('page-schedule');
     renderSchedule();
+  });
+
+  // ---------------------------------------------------------------
+  // 新規予約入力:空いているセルをタップした時に開くフォーム
+  // ---------------------------------------------------------------
+  function openNewResForm(laneType, lane, slotIndex) {
+    var laneObj = ALL_LANES.filter(function (l) { return l.laneType === laneType && l.lane === lane; })[0];
+    var maxSlots = freeRunLength(laneType, lane, slotIndex);
+    if (maxSlots < 1) { showToast('この枠には既に予約が入っています'); return; }
+    var startLabel = TIME_LABELS[slotIndex];
+    var selectedStaff = null;
+
+    function render() {
+      var body = document.getElementById('newres-body');
+      var durationOptions = '';
+      for (var n = 1; n <= maxSlots; n++) {
+        durationOptions += '<option value="' + n + '">' + formatDuration(n) + '</option>';
+      }
+      var chips = STAFF.map(function (s) {
+        return '<div class="staff-chip' + (selectedStaff === s.id ? ' selected' : '') + '" data-staffid="' + s.id + '"><span class="av">' + s.initial + '</span>' + s.name + '</div>';
+      }).join('');
+      body.innerHTML =
+        '<div class="detail-card">' +
+        '<div class="kv-grid">' +
+        '<div><div class="k">レーン</div><div class="v">' + (laneObj ? laneObj.label : '') + '</div></div>' +
+        '<div><div class="k">開始時刻</div><div class="v">' + startLabel + '〜</div></div>' +
+        '</div></div>' +
+        '<div><span class="field-label">お客様名</span><input class="field" id="newres-customer" placeholder="例: 佐藤 一郎 様" /></div>' +
+        '<div><span class="field-label">車種</span><input class="field" id="newres-car" placeholder="例: プリウス" /></div>' +
+        '<div><span class="field-label">サービス内容</span><input class="field" id="newres-service" placeholder="例: タイヤ交換" /></div>' +
+        '<div><span class="field-label">所要時間</span><select class="field" id="newres-duration">' + durationOptions + '</select></div>' +
+        '<div><span class="field-label">担当スタッフ(あとで決めてもよい)</span><div class="staff-pick" id="newres-staff-pick">' + chips + '</div></div>' +
+        '<div class="detail-actions" style="margin-top:12px;">' +
+        '<button class="btn btn-primary" id="btn-save-newres">この内容で予約する</button>' +
+        '</div>';
+
+      body.querySelectorAll('.staff-chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          selectedStaff = chip.getAttribute('data-staffid');
+          render();
+        });
+      });
+
+      document.getElementById('btn-save-newres').addEventListener('click', function () {
+        var customer = document.getElementById('newres-customer').value.trim();
+        var car = document.getElementById('newres-car').value.trim();
+        var service = document.getElementById('newres-service').value.trim();
+        var slotCount = parseInt(document.getElementById('newres-duration').value, 10);
+        if (!customer || !service) { showToast('お客様名とサービス内容を入力してください'); return; }
+        var newId = nextResId();
+        reservations.push({
+          id: newId, laneType: laneType, lane: lane, slotStart: slotIndex, slotCount: slotCount,
+          customer: customer, car: car || '未記入', service: service, staff: selectedStaff, status: 'confirmed'
+        });
+        showPage('page-schedule');
+        renderSchedule();
+        showToast(newId + ' を登録しました');
+      });
+    }
+    render();
+    showPage('page-newres');
+  }
+
+  document.getElementById('btn-back-newres').addEventListener('click', function () {
+    showPage('page-schedule');
   });
 
   // ---------------------------------------------------------------
