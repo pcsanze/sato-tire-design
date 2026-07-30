@@ -380,6 +380,17 @@
     return absencesFor(staffId).some(function (a) { return startMin < a.endMin && endMin > a.startMin; });
   }
 
+  // 指定したスタッフが、指定した時間帯[startMin,endMin)にすでに別の予約(キャンセル済みを除く)へ
+  // アサインされていないか。excludeResIdは編集中の予約自身を除外するためのID(新規作成時はnull)
+  function isStaffBusyDuring(staffId, startMin, endMin, excludeResId) {
+    return reservations.some(function (r) {
+      if (r.staff !== staffId || r.status === 'cancelled' || r.id === excludeResId) return false;
+      var rStart = DAY_START_MIN + r.slotStart * STEP_MIN;
+      var rEnd = DAY_START_MIN + (r.slotStart + r.slotCount) * STEP_MIN;
+      return startMin < rEnd && endMin > rStart;
+    });
+  }
+
   var statusLabel = { confirmed: '確定', pending: '仮予約', cancelled: 'キャンセル' };
   var jobStatusLabel = { waiting: '未着手', progress: '作業中', done: '完了' };
 
@@ -634,7 +645,9 @@
       var chips = STAFF.map(function (s) {
         var sel = r.staff === s.id;
         var absent = isAbsentDuring(s.id, resStartMin, resEndMin);
-        return '<div class="staff-chip' + (sel ? ' selected' : '') + (absent ? ' unavailable' : '') + '" data-staffid="' + s.id + '"><span class="av">' + s.initial + '</span>' + s.name + (absent ? '<span class="warn">不在</span>' : '') + '</div>';
+        var busy = !sel && isStaffBusyDuring(s.id, resStartMin, resEndMin, r.id);
+        var warnLabel = absent ? '不在' : busy ? '対応中' : '';
+        return '<div class="staff-chip' + (sel ? ' selected' : '') + ((absent || busy) ? ' unavailable' : '') + '" data-staffid="' + s.id + '"><span class="av">' + s.initial + '</span>' + s.name + (warnLabel ? '<span class="warn">' + warnLabel + '</span>' : '') + '</div>';
       }).join('');
       body.innerHTML =
         '<div class="detail-card">' +
@@ -655,7 +668,12 @@
 
       body.querySelectorAll('.staff-chip').forEach(function (chip) {
         chip.addEventListener('click', function () {
-          r.staff = chip.getAttribute('data-staffid');
+          var staffId = chip.getAttribute('data-staffid');
+          if (staffId !== r.staff && (isAbsentDuring(staffId, resStartMin, resEndMin) || isStaffBusyDuring(staffId, resStartMin, resEndMin, r.id))) {
+            showToast(staffById(staffId).name + 'はこの時間、不在か別の予約対応中のためアサインできません');
+            return;
+          }
+          r.staff = staffId;
           render();
           showToast('担当を' + staffById(r.staff).name + 'に設定しました');
         });
@@ -732,6 +750,14 @@
         var service = document.getElementById('newres-service').value.trim();
         var slotCount = parseInt(document.getElementById('newres-duration').value, 10);
         if (!customer || !service) { showToast('お客様名とサービス内容を入力してください'); return; }
+        if (selectedStaff) {
+          var newResStartMin = DAY_START_MIN + slotIndex * STEP_MIN;
+          var newResEndMin = newResStartMin + slotCount * STEP_MIN;
+          if (isAbsentDuring(selectedStaff, newResStartMin, newResEndMin) || isStaffBusyDuring(selectedStaff, newResStartMin, newResEndMin, null)) {
+            showToast(staffById(selectedStaff).name + 'はこの時間、不在か別の予約対応中のためアサインできません');
+            return;
+          }
+        }
         var confirmMsg = 'この内容でよろしいですか？\n\n' +
           'お客様名: ' + customer + '\n' +
           '車種: ' + (car || '未記入') + '\n' +
