@@ -380,15 +380,18 @@
     return absencesFor(staffId).some(function (a) { return startMin < a.endMin && endMin > a.startMin; });
   }
 
-  // 指定したスタッフが、指定した時間帯[startMin,endMin)にすでに別の予約(キャンセル済みを除く)へ
-  // アサインされていないか。excludeResIdは編集中の予約自身を除外するためのID(新規作成時はnull)
-  function isStaffBusyDuring(staffId, startMin, endMin, excludeResId) {
-    return reservations.some(function (r) {
-      if (r.staff !== staffId || r.status === 'cancelled' || r.id === excludeResId) return false;
+  // 指定したスタッフが、指定した時間帯[startMin,endMin)にすでに入っている別の予約(キャンセル済みを除く)を
+  // 返す(なければnull)。excludeResIdは編集中の予約自身を除外するためのID(新規作成時はnull)。
+  // 確認ダイアログで「何の対応中か」を伝えられるよう、真偽値ではなく予約そのものを返す
+  function findStaffConflict(staffId, startMin, endMin, excludeResId) {
+    for (var i = 0; i < reservations.length; i++) {
+      var r = reservations[i];
+      if (r.staff !== staffId || r.status === 'cancelled' || r.id === excludeResId) continue;
       var rStart = DAY_START_MIN + r.slotStart * STEP_MIN;
       var rEnd = DAY_START_MIN + (r.slotStart + r.slotCount) * STEP_MIN;
-      return startMin < rEnd && endMin > rStart;
-    });
+      if (startMin < rEnd && endMin > rStart) return r;
+    }
+    return null;
   }
 
   var statusLabel = { confirmed: '確定', pending: '仮予約', cancelled: 'キャンセル' };
@@ -645,9 +648,9 @@
       var chips = STAFF.map(function (s) {
         var sel = r.staff === s.id;
         var absent = isAbsentDuring(s.id, resStartMin, resEndMin);
-        var busy = !sel && isStaffBusyDuring(s.id, resStartMin, resEndMin, r.id);
-        var warnLabel = absent ? '不在' : busy ? '対応中' : '';
-        return '<div class="staff-chip' + (sel ? ' selected' : '') + ((absent || busy) ? ' unavailable' : '') + '" data-staffid="' + s.id + '"><span class="av">' + s.initial + '</span>' + s.name + (warnLabel ? '<span class="warn">' + warnLabel + '</span>' : '') + '</div>';
+        var conflict = !sel && findStaffConflict(s.id, resStartMin, resEndMin, r.id);
+        var warnLabel = absent ? '不在' : conflict ? '対応中' : '';
+        return '<div class="staff-chip' + (sel ? ' selected' : '') + ((absent || conflict) ? ' unavailable' : '') + '" data-staffid="' + s.id + '"><span class="av">' + s.initial + '</span>' + s.name + (warnLabel ? '<span class="warn">' + warnLabel + '</span>' : '') + '</div>';
       }).join('');
       body.innerHTML =
         '<div class="detail-card">' +
@@ -669,9 +672,15 @@
       body.querySelectorAll('.staff-chip').forEach(function (chip) {
         chip.addEventListener('click', function () {
           var staffId = chip.getAttribute('data-staffid');
-          if (staffId !== r.staff && (isAbsentDuring(staffId, resStartMin, resEndMin) || isStaffBusyDuring(staffId, resStartMin, resEndMin, r.id))) {
-            showToast(staffById(staffId).name + 'はこの時間、不在か別の予約対応中のためアサインできません');
-            return;
+          if (staffId !== r.staff) {
+            if (isAbsentDuring(staffId, resStartMin, resEndMin)) {
+              showToast(staffById(staffId).name + 'はこの時間不在のためアサインできません');
+              return;
+            }
+            var conflict = findStaffConflict(staffId, resStartMin, resEndMin, r.id);
+            if (conflict && !confirm(staffById(staffId).name + 'さんはこの時間、' + conflict.customer + 'の' + conflict.service + '対応中です。それでも担当にしますか？')) {
+              return;
+            }
           }
           r.staff = staffId;
           render();
@@ -753,8 +762,12 @@
         if (selectedStaff) {
           var newResStartMin = DAY_START_MIN + slotIndex * STEP_MIN;
           var newResEndMin = newResStartMin + slotCount * STEP_MIN;
-          if (isAbsentDuring(selectedStaff, newResStartMin, newResEndMin) || isStaffBusyDuring(selectedStaff, newResStartMin, newResEndMin, null)) {
-            showToast(staffById(selectedStaff).name + 'はこの時間、不在か別の予約対応中のためアサインできません');
+          if (isAbsentDuring(selectedStaff, newResStartMin, newResEndMin)) {
+            showToast(staffById(selectedStaff).name + 'はこの時間不在のためアサインできません');
+            return;
+          }
+          var newResConflict = findStaffConflict(selectedStaff, newResStartMin, newResEndMin, null);
+          if (newResConflict && !confirm(staffById(selectedStaff).name + 'さんはこの時間、' + newResConflict.customer + 'の' + newResConflict.service + '対応中です。それでも担当にしますか？')) {
             return;
           }
         }
