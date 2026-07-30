@@ -752,35 +752,28 @@
   // ---------------------------------------------------------------
   // 3つの表(普通車・大型車・スタッフ稼働状況)は別々のDOMだが、どれをスワイプしても
   // 全部同じ横スクロール位置になるよう同期させる。
-  // 以前はrequestAnimationFrameで1フレーム遅らせてから反映していたが、それだと触れていない
-  // 2つの表が常に1フレーム分「後追い」する遅延として体感されてしまう。scrollイベント自体は
-  // ブラウザ側で概ね1フレームに1回程度に間引かれているため、ここでは待たずに即座に反映し、
-  // 遅延を最小化する。ただしscrollLeftへの書き込みは(同期ではなく数フレーム遅れて)その要素
-  // 自身のscrollイベントを誘発するため、無限に反応し合うのを防ぐガードは維持する。
+  // 時間ベースのガード(一定フレーム数だけ同期を止める方式)だと、素早い連続スクロール中に
+  // ガード中の分だけ他の表への反映が間引かれ、それが「後追い」の遅延として体感されてしまう。
+  // 代わりに「直前に自分が書き込んだ値と今回のscrollLeftがほぼ同じか」で、書き込みの反動
+  // (エコー)によるscrollイベントかどうかを判定する。エコーだけを無視し、それ以外は毎回
+  // 即座に反映するので、時間で間引くことなく遅延なく同期できる。
   // ---------------------------------------------------------------
   function setupScrollSync() {
     var scrollEls = ['normal-scroll', 'large-scroll', 'staff-scroll'].map(function (id) {
       return document.getElementById(id);
     });
-    var programmatic = false; // 他の要素へ書き込んだ直後、その反動で発火するscrollを無視するためのガード
-
-    // 書き込みで誘発されるscrollイベントは数フレーム遅れて発火することがあるため、
-    // ガードは2フレーム分保持してから解除する(1フレームだけだと間に合わず連鎖してしまう)
-    function releaseGuardSoon() {
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () { programmatic = false; });
-      });
-    }
+    var lastWritten = new Map(); // 自分がプログラムで書き込んだ直近のscrollLeft値(要素ごと)
 
     scrollEls.forEach(function (el) {
       el.addEventListener('scroll', function () {
-        if (programmatic) return;
-        programmatic = true;
         var x = el.scrollLeft;
+        var echo = lastWritten.get(el);
+        if (echo !== undefined && Math.abs(x - echo) < 1) return; // 自分の書き込みの反動なので無視
         scrollEls.forEach(function (other) {
-          if (other !== el) other.scrollLeft = x;
+          if (other === el) return;
+          lastWritten.set(other, x);
+          other.scrollLeft = x;
         });
-        releaseGuardSoon();
       }, { passive: true });
     });
   }
