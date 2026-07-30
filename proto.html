@@ -632,6 +632,7 @@
         r.status = 'confirmed'; render(); showToast(r.id + ' を確定にしました');
       });
       document.getElementById('btn-cancel-res').addEventListener('click', function () {
+        if (!confirm('この予約を削除しますか？')) return;
         r.status = 'cancelled'; render(); showToast(r.id + ' をキャンセルにしました');
       });
       var gotoJobBtn = document.getElementById('btn-goto-job');
