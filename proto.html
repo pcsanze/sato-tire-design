@@ -679,6 +679,7 @@
   document.getElementById('btn-back-schedule').addEventListener('click', function () {
     showPage('page-schedule');
     renderSchedule();
+    renderStaffTable(); // 予約詳細で担当者やステータスを変えた場合、スタッフ稼働状況にも反映する
   });
 
   // ---------------------------------------------------------------
@@ -738,6 +739,7 @@
         });
         showPage('page-schedule');
         renderSchedule();
+        renderStaffTable(); // 担当者を割り当てた新規予約は、スタッフ稼働状況にもすぐ反映する
         showToast(newId + ' を登録しました');
       });
     }
