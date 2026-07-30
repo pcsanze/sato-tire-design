@@ -718,7 +718,10 @@
       body.querySelectorAll('.staff-chip').forEach(function (chip) {
         chip.addEventListener('click', function () {
           selectedStaff = chip.getAttribute('data-staffid');
-          render();
+          // フォーム全体を再描画すると入力済みのお客様名・車種・サービス内容が消えてしまうため、
+          // 選択ハイライトだけをDOM上で切り替える(render()は呼ばない)
+          body.querySelectorAll('.staff-chip').forEach(function (c) { c.classList.remove('selected'); });
+          chip.classList.add('selected');
         });
       });
 
