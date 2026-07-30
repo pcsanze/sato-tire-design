@@ -732,6 +732,13 @@
         var service = document.getElementById('newres-service').value.trim();
         var slotCount = parseInt(document.getElementById('newres-duration').value, 10);
         if (!customer || !service) { showToast('お客様名とサービス内容を入力してください'); return; }
+        var confirmMsg = 'この内容でよろしいですか？\n\n' +
+          'お客様名: ' + customer + '\n' +
+          '車種: ' + (car || '未記入') + '\n' +
+          'サービス: ' + service + '\n' +
+          '時間: ' + startLabel + '〜(' + formatDuration(slotCount) + ')\n' +
+          '担当: ' + (selectedStaff ? staffById(selectedStaff).name : '未定');
+        if (!confirm(confirmMsg)) return;
         var newId = nextResId();
         reservations.push({
           id: newId, laneType: laneType, lane: lane, slotStart: slotIndex, slotCount: slotCount,
